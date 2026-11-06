@@ -1,0 +1,1890 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>江寒的专属空间</title>
+    <style>
+        * { box-sizing: border-box; }
+               body, html {
+            margin: 0; padding: 0; width: 100%; height: 100%;
+            background-color: #E0F7FA; overflow: hidden;
+            font-family: 'Microsoft YaHei', sans-serif;
+            touch-action: none;
+            transition: background-color 1.5s;
+            /* 【新增】禁止选中文字和长按弹窗 */
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+            -webkit-touch-callout: none;
+        }
+        #bg-canvas { position: absolute; top: 0; left: 0; z-index: 1; pointer-events: none; }
+        
+               /* ===== 强杀 Netlify 水印及悬浮标 ===== */
+        a[href*="netlify.com"], #netlify-badge, iframe[name="netlify-badge"], 
+        div#netlify-badge, .netlify-badge, [id*="netlify"] {
+            display: none !important; 
+            opacity: 0 !important; 
+            z-index: -9999 !important; 
+            visibility: hidden !important;
+            pointer-events: none !important;
+        }
+        /* ================== 原流程弹窗 ================== */
+        .popup-window {
+            position: absolute; background-color: #FFB7C5; border: 1px solid rgba(255,255,255,0.6); border-radius: 6px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.15); display: flex; flex-direction: column; z-index: 10;
+            opacity: 0; height: auto; min-height: 50px; transform: scale(0.6) translateY(20px);
+            transition: opacity 0.6s, transform 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275), background-color 1s, left 1.8s ease-in-out, top 1.8s ease-in-out;
+            pointer-events: none; max-width: 90vw;
+        }
+        .popup-window.show { opacity: 1; transform: scale(1) translateY(0); }
+        .popup-window.hide { opacity: 0; transform: scale(0.8); }
+        .popup-title-bar { height: 20px; background: rgba(255,255,255,0.25); display: flex; align-items: center; justify-content: space-between; padding: 0 6px; font-size: 11px; color: rgba(255,255,255,0.9); flex-shrink: 0; }
+        .popup-content {
+            flex: 1; display: flex; align-items: center; justify-content: center; padding: 6px; color: white; font-weight: bold; text-align: center;
+            font-size: clamp(11px, 3.2vw, 14px); line-height: 1.4; text-shadow: 0 1px 2px rgba(0,0,0,0.1);
+            word-break: break-all; display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden;
+        }
+        .popup-window.dark { background-color: #2a2a2a; border-color: rgba(200, 0, 0, 0.4); box-shadow: 0 0 20px rgba(139, 0, 0, 0.6); transition: opacity 0.3s, transform 0.3s, background-color 0.3s;}
+        .popup-window.dark .popup-title-bar { background: rgba(139, 0, 0, 0.4); color: #ff9999; }
+        .popup-window.dark .popup-content { color: #ffcccc; }
+
+        /* ================== 居中提示窗 ================== */
+        .special-window {
+            position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%) scale(0);
+            width: min(90vw, 340px); min-height: 160px; background-color: #FFB7C5; border-radius: 10px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2); z-index: 99999; display: flex; flex-direction: column;
+            align-items: center; justify-content: center; padding: 20px; transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        .special-window.show { transform: translate(-50%, -50%) scale(1); }
+        .special-window h2 { color: white; margin-bottom: 20px; font-size: clamp(16px, 5vw, 20px); font-weight: bold; text-align: center; line-height: 1.4;}
+        .special-btn { background: white; color: #FF69B4; border: none; padding: 10px 40px; border-radius: 20px; font-weight: bold; font-size: clamp(14px, 4vw, 16px); cursor: pointer; box-shadow: 0 4px 10px rgba(255,105,180,0.3); transition: transform 0.1s; }
+        .special-btn:active { transform: scale(0.9); }
+
+        /* ================== 打字机 ================== */
+        #typewriter { position: absolute; top: 40%; left: 50%; transform: translate(-50%, -50%); color: #FF8FAB; font-size: clamp(18px, 5vw, 26px); font-weight: bold; text-align: center; white-space: pre-wrap; line-height: 1.6; transition: opacity 0.5s; z-index: 500; pointer-events: none; width: 90%; }
+
+        /* ================== 隐蔽按钮 ================== */
+        .hidden-trigger { position: absolute; color: rgba(255, 143, 171, 0.15); font-size: 35px; font-weight: bold; cursor: pointer; z-index: 99999; transition: color 0.3s, transform 0.3s; display: none; padding: 20px; user-select: none; }
+        .hidden-trigger.show { display: block; }
+        .hidden-trigger:active { color: rgba(255, 105, 180, 1); transform: scale(1.3); }
+        #btn-phase2 { bottom: 80px; left: 10px; } 
+        #btn-phase3 { bottom: 20px; left: 10px; color: rgba(200, 0, 0, 0.15); } 
+
+        /* ================== 图片轮播层 (修复大小) ================== */
+        #image-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background-color: #000; z-index: 8000; display: none; justify-content: center; align-items: center; pointer-events: none; }
+        #story-img { width: 100%; height: 100%; object-fit: fill; background-color: #000; transition: opacity 0.5s; }
+
+        /* ================== 全屏求婚 ================== */
+        #proposal-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(5,0,0,0.98); z-index: 99000; display: none; flex-direction: column; justify-content: center; align-items: center; opacity: 0; transition: opacity 1s; pointer-events: all; }
+        #proposal-layer.show { opacity: 1; }
+        .red-text-bg { position: absolute; color: #ff0000; font-weight: 900; font-size: clamp(16px, 4vw, 24px); opacity: 0.6; user-select: none; pointer-events: none; text-shadow: 0 0 10px #ff0000; }
+        .proposal-center { z-index: 99001; display: flex; flex-direction: column; align-items: center; background: rgba(0,0,0,0.8); padding: 30px 40px; border-radius: 20px; border: 2px solid #ff0000; box-shadow: 0 0 60px #ff0000; }
+        .proposal-title { color: #ff0000; font-size: clamp(30px, 10vw, 60px); font-weight: 900; text-shadow: 0 0 20px #ff0000, 0 0 40px #ff0000; margin-bottom: 40px; animation: pulse 1s infinite alternate; }
+        @keyframes pulse { 0% { transform: scale(1); } 100% { transform: scale(1.05); } }
+        .btn-yes { font-size: clamp(18px, 5vw, 24px); padding: 15px 50px; background: #ff0000; color: white; }
+        .btn-no { font-size: 12px; padding: 5px 15px; background: #333; color: #999; border: 1px solid #666; margin-top: 15px; }
+
+        /* ================== 绝笔信 ================== */
+        #letter-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background-color: #2b1d16; z-index: 95000; display: none; flex-direction: column; justify-content: center; align-items: center; opacity: 0; transition: opacity 1.5s; padding: 20px; }
+        #letter-layer.show { opacity: 1; }
+        .letter-paper { width: 100%; max-width: 520px; height: 75%; background-color: #f2e8d5; border: 1px solid #c9b69b; border-radius: 2px; box-shadow: inset 0 0 40px rgba(101, 67, 33, 0.25), 5px 5px 20px rgba(0,0,0,0.5); padding: 20px 15px; position: relative; }
+        .letter-page { width: 100%; height: 100%; overflow-y: auto; color: #3e2723; font-family: 'KaiTi', '楷体', serif; font-size: clamp(15px, 4.2vw, 18px); line-height: 2.1; text-align: justify; white-space: pre-wrap; position: relative; z-index: 1; }
+        .letter-page::-webkit-scrollbar { width: 4px; }
+        .letter-page::-webkit-scrollbar-thumb { background: #c9b69b; border-radius: 2px; }
+        .letter-controls { margin-top: 20px; display: flex; gap: 20px; }
+        .letter-btn { background: #c9b69b; color: #3e2723; border: 1px solid #b09c80; padding: 10px 25px; border-radius: 4px; cursor: pointer; font-size: clamp(14px, 4vw, 16px); letter-spacing: 2px; box-shadow: 2px 2px 5px rgba(0,0,0,0.2); transition: all 0.2s; }
+        .letter-btn:active { transform: translateY(2px); box-shadow: none; }
+        #end-btn { background: #5d1a1a; color: #f2e8d5; border-color: #4a1010; }
+
+        /* ================== 终局层 ================== */
+        #ending-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: none; flex-direction: column; justify-content: center; align-items: center; z-index: 96000; opacity: 0; transition: opacity 1.5s; background-color: #E0F7FA; }
+        #ending-layer.show { opacity: 1; }
+        #ending-text { color: #FF8FAB; font-size: clamp(20px, 6vw, 30px); font-weight: bold; text-align: center; white-space: pre-wrap; line-height: 1.8; text-shadow: 0 0 20px rgba(255,143,171,0.4); margin-bottom: 20px; padding: 0 20px; transition: color 1s; }
+        #memory-btn, #forget-btn { background: transparent; color: #FF8FAB; border: 2px solid #FF8FAB; padding: 12px 50px; border-radius: 30px; font-size: clamp(16px, 4.5vw, 18px); cursor: pointer; transition: all 0.3s; }
+        #forget-btn { color: #666; border-color: #666; margin-top: 15px; }
+        #memory-btn:hover { background: #FF8FAB; color: white; }
+        #forget-btn:hover { background: #666; color: white; }
+
+        /* ================== 养崽常驻 UI (左上角) ================== */
+        #pet-widget { position: absolute; top: 20px; left: 20px; z-index: 100000; display: none; flex-direction: column; align-items: flex-start; pointer-events: none; }
+        
+        #affection-container { background: rgba(255,255,255,0.85); padding: 5px 15px; border-radius: 20px; font-size: clamp(11px, 3vw, 13px); font-weight: bold; color: #FF69B4; display: flex; align-items: center; gap: 8px; margin-bottom: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); pointer-events: auto; cursor: pointer; }
+        .progress-bar { width: 60px; height: 8px; background: #eee; border-radius: 4px; overflow: hidden;}
+        .progress-fill { height: 100%; background: #FF69B4; transition: width 0.3s; }
+        
+        #pet-dialog { background: rgba(255,255,255,0.95); border-radius: 10px; padding: 10px 15px; font-size: clamp(12px, 3.5vw, 14px); color: #333; font-weight: bold; margin-bottom: 10px; max-width: 180px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); opacity: 0; transform: translateY(10px); transition: all 0.3s; position: relative; text-align: center; pointer-events: auto; display: none; }
+        #pet-dialog.show { display: block; opacity: 1; transform: translateY(0); }
+        #pet-dialog::after { content: ''; position: absolute; bottom: -8px; left: 30px; border-width: 8px 8px 0; border-style: solid; border-color: rgba(255,255,255,0.95) transparent transparent; }
+        #pet-dialog.dark { background: #222; color: #ff0000; border: 1px solid #ff0000; }
+        #pet-dialog.dark::after { border-color: #222 transparent transparent; }
+
+        #jianghan-avatar { width: 80px; height: 80px; cursor: pointer; transition: transform 0.2s; background-image: url('jianghan.png'); background-size: cover; background-repeat: no-repeat; background-position: center; border-radius: 50%; border: 3px solid #FFB7C5; box-shadow: 0 0 15px rgba(255, 183, 197, 0.8), 0 5px 15px rgba(0,0,0,0.2); animation: float 3s ease-in-out infinite; pointer-events: auto; position: relative; }
+        @media (min-width: 768px) { #jianghan-avatar { width: 100px; height: 100px; } .progress-bar { width: 80px; } }
+        @keyframes float { 0% { transform: translateY(0px) rotate(0deg); } 50% { transform: translateY(-8px) rotate(2deg); } 100% { transform: translateY(0px) rotate(0deg); } }
+        #jianghan-avatar.bounce { animation: bounceAnim 0.5s; }
+        @keyframes bounceAnim { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.15) translateY(-10px); } }
+
+        #pet-menu { display: flex; gap: 6px; margin-top: 10px; opacity: 0; pointer-events: none; transition: opacity 0.3s; pointer-events: auto; }
+        #pet-menu.show { opacity: 1; pointer-events: auto; }
+        .menu-btn { background: rgba(255, 255, 255, 0.95); border: 2px solid #FFB7C5; border-radius: 20px; padding: 6px 10px; font-size: clamp(11px, 3vw, 13px); font-weight: bold; color: #FF69B4; cursor: pointer; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        .menu-btn:active { background: #FFB7C5; color: white; }
+
+        /* ================== 抱抱迷你弹窗 ================== */
+        .hug-popup { position: absolute; top: 100px; left: 100px; background: #fff; border: 2px solid #FFB7C5; padding: 15px; border-radius: 10px; box-shadow: 0 5px 15px rgba(0,0,0,0.2); z-index: 100005; display: flex; flex-direction: column; gap: 10px; width: 140px; pointer-events: auto; text-align: center; opacity: 0; transform: scale(0.8); transition: all 0.2s; }
+        .hug-popup.show { opacity: 1; transform: scale(1); }
+        .hug-popup p { margin: 0 0 5px 0; font-size: 13px; color: #FF69B4; font-weight: bold; }
+        .hug-popup .btn-group { display: flex; gap: 5px; }
+        .hug-popup button { flex: 1; padding: 6px 0; border-radius: 5px; border: none; cursor: pointer; font-size: 12px; font-weight: bold; }
+        .hug-popup .btn-hug-yes { background: #FF69B4; color: white; }
+        .hug-popup .btn-hug-no { background: #eee; color: #666; }
+
+        /* ================== 喂食面板 ================== */
+        #action-panel { position: absolute; top: 120px; left: 20px; width: min(260px, 80vw); background: white; border-radius: 15px; padding: 15px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); display: none; z-index: 100001; pointer-events: auto; }
+        .panel-title { font-weight: bold; color: #FF69B4; margin-bottom: 10px; font-size: clamp(13px, 3.5vw, 15px); text-align: center;}
+
+        /* ================== 约会面板 ================== */
+        #date-panel { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: min(90vw, 600px); max-height: 80vh; background: rgba(255, 255, 255, 0.98); border-radius: 15px; padding: 20px; box-shadow: 0 10px 40px rgba(0,0,0,0.3); z-index: 100002; display: none; flex-direction: column; pointer-events: auto; }
+        #date-panel.show { display: flex !important; }
+        .date-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; border-bottom: 2px solid #FFB7C5; padding-bottom: 10px; }
+        .date-title { font-size: clamp(18px, 5vw, 22px); font-weight: bold; color: #FF69B4; }
+        .date-close { font-size: 24px; color: #999; cursor: pointer; font-weight: bold; padding: 0 10px; }
+        .date-close:active { color: #FF69B4; }
+        .date-list { overflow-y: auto; flex: 1; display: flex; flex-direction: column; gap: 12px; padding-right: 5px; }
+        .date-list::-webkit-scrollbar { width: 4px; }
+        .date-list::-webkit-scrollbar-thumb { background: #FFB7C5; border-radius: 2px; }
+        .date-card { background: #FFF0F5; border: 1px solid #FFB7C5; border-radius: 10px; padding: 12px 15px; display: flex; justify-content: space-between; align-items: center; transition: all 0.2s; }
+        .date-card.locked { background: #f0f0f0; border-color: #ddd; opacity: 0.8; }
+        .date-card-info { display: flex; flex-direction: column; gap: 4px; }
+        .date-card-name { font-weight: bold; color: #FF69B4; font-size: clamp(14px, 4vw, 16px); }
+        .date-card.locked .date-card-name { color: #999; }
+        .date-card-req { font-size: clamp(11px, 3vw, 13px); color: #666; }
+        .date-card-btn { background: #FF69B4; color: white; border: none; padding: 6px 16px; border-radius: 15px; font-size: clamp(12px, 3.5vw, 14px); font-weight: bold; cursor: pointer; }
+        .date-card-btn:active { transform: scale(0.95); }
+        .date-card-btn.locked { background: #ccc; color: #666; cursor: not-allowed; }
+
+        /* ================== 全新 Galgame 文游层 ================== */
+        #story-layer { 
+            position: absolute; top: 0; left: 0; width: 100%; 
+            /* 【修改】把 height: 100% 改为下面这句，更适配手机 */
+            height: 100vh; height: 100dvh; 
+            background-image: url('date_bg.jpg'); 
+            background-size: cover; 
+            background-position: center;
+            z-index: 9999999; display: none; 
+        }
+        
+        /* 加一层暗色遮罩，保证文字清晰，且隔绝底层原流程 */
+        #story-layer::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background-color: rgba(0, 0, 0, 0.55); /* 遮罩透明度，0.55刚好能看清图，字也很清晰 */
+            z-index: 0;
+        }
+        .story-box { 
+            position: absolute; bottom: 0; left: 0; width: 100%; min-height: 35%; max-height: 60%; 
+            background: rgba(15, 15, 15, 0.9); 
+            border-top: 2px solid #FFB7C5; 
+            box-shadow: 0 -5px 20px rgba(0,0,0,0.8); 
+            /* 【修改】强制底部留白 40px，防止被任何悬浮物或系统横条挡住 */
+            padding: 20px 10% 40px 10%; 
+            display: flex; flex-direction: column; z-index: 1;
+        }
+        .story-title { display: none; }
+        
+        .story-text { flex: 1; overflow-y: auto; color: #f0f0f0; font-family: 'Microsoft YaHei', sans-serif; font-size: clamp(16px, 4.2vw, 20px); line-height: 2.1; text-align: justify; white-space: pre-wrap; margin-bottom: 20px; cursor: pointer; text-shadow: 0 1px 2px #000; }
+        .story-text::-webkit-scrollbar { width: 4px; }
+        .story-text::-webkit-scrollbar-thumb { background: #555; border-radius: 2px; }
+        
+        .story-click-hint { position: absolute; bottom: 20px; right: 10%; font-size: 13px; color: #aaa; animation: bounceHint 1s infinite alternate; pointer-events: none; opacity: 0; transition: opacity 0.3s; }
+        .story-click-hint.show { opacity: 1; }
+        @keyframes bounceHint { 0% { transform: translateY(0); } 100% { transform: translateY(-5px); } }
+        
+        .story-options { display: flex; flex-direction: column; gap: 12px; min-height: 50px; align-items: center; justify-content: center; width: 100%;}
+        
+        .story-opt-btn { background: rgba(0, 0, 0, 0.6); color: #fff; border: 1px solid #FFB7C5; padding: 12px 20px; border-radius: 30px; font-size: clamp(15px, 4vw, 18px); font-family: 'Microsoft YaHei', sans-serif; cursor: pointer; text-align: center; transition: all 0.2s; width: 80%; max-width: 500px; box-shadow: 0 4px 10px rgba(0,0,0,0.5); opacity: 0; animation: fadeInOpt 0.3s forwards; }
+        @keyframes fadeInOpt { to { opacity: 1; } }
+        .story-opt-btn:active { transform: scale(0.98); background: #FFB7C5; color: #000; }
+        .story-opt-btn:hover { background: rgba(255, 183, 197, 0.3); }
+        
+        #story-exit-btn { position: absolute; top: 20px; right: 20px; background: transparent; border: 1px solid #888; color: #ccc; padding: 6px 12px; border-radius: 15px; font-size: 14px; cursor: pointer; font-family: 'Microsoft YaHei', sans-serif; z-index: 10000;}
+        #story-exit-btn:active { color: #fff; border-color: #fff; }
+    </style>
+</head>
+<script>
+    window.addEventListener('load', function() {
+        const loader = document.getElementById('loading-screen');
+        loader.style.opacity = '0';
+        setTimeout(() => { loader.style.display = 'none'; }, 500);
+    });
+</script>
+<body>
+    <div id="loading-screen" style="position:fixed; top:0; left:0; width:100%; height:100%; background:#E0F7FA; z-index:99999999; display:flex; justify-content:center; align-items:center; color:#FF69B4; font-weight:bold; font-size:20px; transition:opacity 0.5s;">
+    正在加载小爷的空间...
+</div>
+
+       <!-- 将原有的 audio 标签替换为以下内容 -->
+    <audio id="bgm1" loop preload="none"><source src="1.mp3" type="audio/mpeg"></audio>
+    <audio id="bgm2" loop preload="none"><source src="2.mp3" type="audio/mpeg"></audio>
+    <audio id="bgm3" loop preload="none"><source src="3.mp3" type="audio/mpeg"></audio>
+    <audio id="bgm_date" loop preload="none"><source src="kiku.mp3" type="audio/mpeg"></audio>
+
+    <canvas id="bg-canvas"></canvas>
+    <div id="typewriter"></div>
+    <div id="btn-phase2" class="hidden-trigger">❤</div>
+    <div id="btn-phase3" class="hidden-trigger">✉</div>
+    
+    <div id="image-layer"><img id="story-img" src="" alt="story"></div>
+
+    <div id="proposal-layer">
+        <div class="proposal-center">
+            <div class="proposal-title" id="proposal-text">嫁给我吧</div>
+            <button class="special-btn btn-yes" id="proposal-btn">好啊</button>
+            <button class="special-btn btn-no" id="proposal-no-btn">不要</button>
+        </div>
+    </div>
+
+    <div id="letter-layer">
+        <div class="letter-paper"><div class="letter-page" id="letter-text"></div></div>
+        <div class="letter-controls">
+            <button class="letter-btn" id="prev-btn" style="display:none;">上一页</button>
+            <button class="letter-btn" id="next-btn">下一页</button>
+            <button class="letter-btn" id="end-btn" style="display:none;">End</button>
+        </div>
+    </div>
+
+    <div id="ending-layer">
+        <div id="ending-text"></div>
+        <button id="memory-btn">回忆</button>
+        <button id="forget-btn">忘记</button>
+    </div>
+
+    <div id="pet-widget">
+        <div id="affection-container" onclick="showAffectionDetails()">
+            好感度: <span id="affection-val">50</span>
+            <div class="progress-bar"><div class="progress-fill" id="affection-fill" style="width: 33%;"></div></div>
+        </div>
+        <div id="pet-dialog"></div>
+        <div id="jianghan-avatar"></div>
+        <div id="pet-menu">
+            <button class="menu-btn" id="btn-feed">喂食</button>
+            <button class="menu-btn" id="btn-hug">抱抱</button>
+            <button class="menu-btn" id="btn-story">情话</button>
+            <button class="menu-btn" id="btn-date">约会</button>
+        </div>
+    </div>
+
+    <div id="hug-modal" class="hug-popup">
+        <p>小爷要抱抱！给不给？</p>
+        <div class="btn-group">
+            <button class="btn-hug-yes" onclick="handleHug(true)">抱</button>
+            <button class="btn-hug-no" onclick="handleHug(false)">不抱</button>
+        </div>
+    </div>
+
+    <div id="action-panel">
+        <div id="feed-view">
+            <div class="panel-title">十二时辰投喂</div>
+            <div style="display:flex; justify-content:space-around; margin-top:15px;">
+                <button class="special-btn" onclick="feedPet('馒头')" style="padding: 10px;">🥟 馒头</button>
+                <button class="special-btn" onclick="feedPet('糖葫芦')" style="padding: 10px;">🍡 糖葫芦</button>
+                <button class="special-btn" onclick="feedPet('奶茶')" style="padding: 10px;">🧋 奶茶</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="date-panel">
+        <div class="date-header">
+            <div class="date-title">💕 与江寒的约定</div>
+            <div class="date-close" id="date-close-btn">✖</div>
+        </div>
+        <div class="date-list" id="date-list-container"></div>
+    </div>
+
+    <div id="story-layer">
+        <button id="story-exit-btn">退出剧情</button>
+        <div class="story-box">
+            <div class="story-title" id="story-title-text">章节标题</div>
+            <div class="story-text" id="story-text-content"></div>
+            <div class="story-click-hint" id="story-hint">▼ 点击继续</div>
+            <div class="story-options" id="story-options-container"></div>
+        </div>
+    </div>
+
+    <script>
+                // 【新增】全局禁止右键/长按菜单
+        document.addEventListener('contextmenu', function(e) {
+            e.preventDefault();
+        });
+        document.addEventListener('selectstart', function(e) {
+            e.preventDefault();
+        });
+                // 【终极防干扰】定时清理 Netlify 的流氓水印
+        setInterval(function() {
+            // 寻找所有 id 或 class 包含 netlify 的元素
+            const badElements = document.querySelectorAll('[id*="netlify"], [class*="netlify"], a[href*="netlify"]');
+            badElements.forEach(el => el.remove());
+            
+            // 寻找所有包含 "Powered by" 字样的元素
+            const allElements = document.querySelectorAll('a, div, span');
+            allElements.forEach(el => {
+                if (el.textContent && el.textContent.includes('Powered by')) {
+                    el.remove();
+                }
+            });
+        }, 500); // 每 0.5 秒扫荡一次，它加多少我们删多少
+        // ================= 全局定时器清理机制 =================
+        let globalTimers = [];
+        function safeSetTimeout(fn, delay) { let id = setTimeout(fn, delay); globalTimers.push(id); return id; }
+        function safeSetInterval(fn, delay) { let id = setInterval(fn, delay); globalTimers.push(id); return id; }
+        function clearAllGlobalTimers() { globalTimers.forEach(id => { clearTimeout(id); clearInterval(id); }); globalTimers = []; }
+
+        // ================= 1. 状态与存储 =================
+        let recallCount = parseInt(localStorage.getItem('fengqingyan_recall_count')) || 0;
+        let isDarkMode = false;
+        const isMobile = window.innerWidth < 768; 
+        
+        let affection = parseInt(localStorage.getItem('jh_affection')) || 20; 
+        let firstRecall = localStorage.getItem('jh_first_recall') === 'true';
+        let lastFeedTime = parseInt(localStorage.getItem('jh_last_feed')) || 0;
+        let lastHugTime = parseInt(localStorage.getItem('jh_last_hug')) || 0;
+
+        const normalQuotes = ["是不是想我了？", "不许弹小爷脑袋，到时候我变得和你一样蠢了！", "疼，你轻点", "你在做什么？", "北地笨猪！", "今天天气不错，适合和风清雁成亲。", "别盯着我看，小爷我脸上有花吗？", "再看？再看我就亲你了。", "小爷我今天心情好，允许你多看两眼。", "你点我干嘛？想要抱抱直说。", "别以为不说话我就不知道你在想什么。", "这地儿太闷了，什么时候带我出去转转？", "你再不理我，我就要生气了哦。"];
+        const evilQuotes = ["你再碰我一下试试？", "滚开，别碰我。", "你是不是也觉得我很恶心？", "你和他们都一样，都在看我的笑话！", "我恨你……我恨死你了！", "你为什么不去死！", "你别以为我不敢杀你。", "离我远点！"];
+        const highLoveQuotes = ["北地笨猪，其实小爷我……挺喜欢你的。", "那天榕乡城的酒，很好喝。", "我这辈子，只对你一个人服软。", "你别怕，天塌下来有我顶着。", "如果你不是圣女，我也不是江寒，那该多好。"];
+
+        // ================= 2. 背景粒子与弹窗 =================
+        const canvas = document.getElementById('bg-canvas');
+        const ctx = canvas.getContext('2d');
+        let width, height, particles = [];
+        const lotusColors = ['#FFFFFF', '#FCE4EC', '#F8BBD0', '#E1BEE7', '#D1C4E9'];
+        const darkColors = ['#424242', '#212121', '#B71C1C', '#4A148C', '#311B92'];
+
+        function resize() { width = canvas.width = window.innerWidth; height = canvas.height = window.innerHeight; }
+        window.addEventListener('resize', resize); resize();
+
+        class LotusParticle {
+            constructor() { this.reset(true); }
+            reset(init = false) {
+                this.x = Math.random() * width; this.y = init ? Math.random() * height : -20;
+                this.size = Math.random() * 12 + 8; this.speedY = Math.random() * 1.0 + 0.3;
+                this.speedX = Math.random() * 0.4 - 0.2; this.angle = Math.random() * Math.PI * 2;
+                this.rotSpeed = (Math.random() - 0.5) * 0.03;
+                this.color = isDarkMode ? darkColors[Math.floor(Math.random() * darkColors.length)] : lotusColors[Math.floor(Math.random() * lotusColors.length)];
+            }
+            update() { this.y += this.speedY; this.x += Math.sin(this.y / 60) * 0.8 + this.speedX; this.angle += this.rotSpeed; if (this.y > height + 20) this.reset(); }
+            draw() { ctx.save(); ctx.translate(this.x, this.y); ctx.rotate(this.angle); ctx.fillStyle = this.color; ctx.beginPath(); ctx.moveTo(0, -this.size); ctx.quadraticCurveTo(this.size * 0.8, -this.size * 0.5, 0, this.size); ctx.quadraticCurveTo(-this.size * 0.8, -this.size * 0.5, 0, -this.size); ctx.fill(); ctx.restore(); }
+        }
+        function initParticles() { particles = []; for (let i = 0; i < 120; i++) particles.push(new LotusParticle()); }
+        function animateParticles() { ctx.clearRect(0, 0, width, height); particles.forEach(p => { p.update(); p.draw(); }); requestAnimationFrame(animateParticles); }
+        initParticles(); animateParticles();
+
+        const loveMessages = [
+            "北地笨猪，你是不是怕了？", "如果有一天，我不是羽幽城祭司了，我们还能像现在这样吗？",
+            "风清雁，我们所经历的一切，不是一支笔能定下的。", "我能遇见你，便是我自天命中，偷来的属于我们的片刻。",
+            "小爷过去能偷来许许多多的片刻，现在，便也能为你偷来一个好的结局。", "风清雁，你要不要试着信我一次。",
+            "我才不要你跟我一起死。", "风清雁，爱让人困于方寸之间。但若是和我一起困于囹圄之人是你，我愿意的。",
+            "小爷今日心情好，便许你一个承诺。你不能做的事，我替你做。你看着我，就算你做了一半。",
+            "我叫风清砚，砚台的砚。", "这里是你十岁到十九岁的生辰礼。我想将这十年里，你每一次的生辰礼都补给你。", 
+            "风清雁，我喜欢你。", "你骂我南蛮蠢驴，转头也就骂完了。现在你只要想起我，你便会想起我。", 
+            "风清雁，别怕，有我在。", "你不是喜欢吃糖葫芦吗？我学了，以后天天给你做。",
+            "那个说书人讲的故事不好听，不如听听我的。", "风清雁，我看上的，从来就没有得不到的。包括你。",
+            "十两银子买个馒头，小爷的命真便宜。", "你堂堂莲心城圣女，居然为了十两银子追着我不依不饶。",
+            "风清雁，我这辈子只对你一个人服软。", "你别怕，天塌下来也有我顶着。",
+            "如果你不是圣女，我也不是江寒，那该多好。", "风清雁，等到这一切都结束了，我们去看雪吧，回北地看雪。",
+            "我这人其实挺烂的，但我想把最好的一面留给你。", "小爷我啊，最怕你哭了。你哭起来，我连命都想给你。"
+        ];
+        const darkMessages = [
+            "现在，你的人生是我的，你爹也是我的！", "再过不久，他们会慢慢忘记你，只记得我。",
+            "喜欢我为你写的十生十世吗？是不是感动得痛哭流涕了？",
+            "云谦的爱那么廉价，随随便便一张符、一颗珠子就改了，根本不值得你在意！",
+            "风清雁，你以为我跟你一样吃爹线吗？我告诉你，我可以不吃！！！！但我不能没有！！！！我只吃纯爱，我只在乎你啊！",
+            "你如果不听话，我随时可以杀了云谦哦～", "凭什么在你和我之间，就应该是我让着你？",
+            "你说的没错，我确实不懂什么是爱。因为，从来没人教过我，什么是爱。",
+            "看！这就是你拼尽全力护了十年的爹，他连你是谁都不记得了！",
+            "十段情爱，十种身份。这些全是我写给你的，你只能看我为你写的故事！",
+            "你敢为了他死？你信不信，你死之后，我会让他生生世世不得超生！",
+            "风清雁，你识趣一些。没准我会对他好些，我们可以三个人一起把日子过好。",
+            "这世上的所有人都会离开你，只有我，永远不会。", "你不是想救他吗？求我啊。只要你求我，我就给他留个全尸。",
+            "你那点可笑的善良，在我眼里一文不值。", "既然你那么喜欢当圣女，那就一辈子待在我给你造的笼子里当圣女吧。",
+            "别用那种眼神看我，我会忍不住想把它挖出来的。", "你看，只要你乖乖的，我就不会去折磨云谦。"
+        ];
+        const highLevelLove = ["我爱你，也是真的。", "如果我不是江寒，我们还能这样吗？", "风清雁，我放你自由。", "唯一放不下的，从来只有你。"];
+        const highLevelHate = ["你最恨的人，毁了你一生的噩梦！", "我这一生，从未被世间偏爱半分！", "你凭什么觉得，你还能和他长相厮守？", "死在你手里，是我最好的结局！"];
+        
+        let allPopups = []; 
+
+        function createPopup(message, isDark = false, x = null, y = null, w = null, h = null) {
+            const win = document.createElement('div'); win.className = 'popup-window' + (isDark ? ' dark' : '');
+            let ww = w || (isMobile ? 100 : 130); if (ww > window.innerWidth * 0.9) ww = window.innerWidth * 0.9;
+            win.style.left = (x !== null ? x : Math.random() * (window.innerWidth - ww)) + 'px'; 
+            win.style.top = (y !== null ? y : Math.random() * (window.innerHeight - 80)) + 'px';
+            win.style.width = ww + 'px';
+            if (!isDark) win.style.backgroundColor = ['#FFB7C5', '#FFC0CB', '#FFB6C1', '#FFD1DC'][Math.floor(Math.random() * 4)];
+            if (message === "我爱你" || message === "我恨你") {
+                win.innerHTML = `<div class="popup-content" style="font-size: clamp(16px, 4vw, 22px); font-weight: 900; color: ${message==='我爱你'?'#FF69B4':'#8b0000'};">${message}</div>`;
+            } else {
+                win.innerHTML = `<div class="popup-title-bar"><span>${isDark ? '警告' : '江寒'}</span><span class="popup-close">✖</span></div><div class="popup-content">${message.replace(/\\n/g, '<br>')}</div>`;
+            }
+            document.body.appendChild(win); allPopups.push(win); safeSetTimeout(() => win.classList.add('show'), 10); return win;
+        }
+
+        function clearPopups() { allPopups.forEach(win => { win.classList.remove('show'); safeSetTimeout(() => win.remove(), 300); }); allPopups = []; }
+        function pauseAllBGM() { ['bgm1', 'bgm2', 'bgm3'].forEach(id => { const audio = document.getElementById(id); audio.pause(); audio.currentTime = 0; }); }
+
+        // ================= 3. 主流程控制 =================
+        window.startFlow = function() {
+            pauseAllBGM(); clearPopups(); isDarkMode = false; document.body.style.backgroundColor = '#E0F7FA'; initParticles();
+            
+            document.getElementById('date-panel').classList.remove('show');
+            document.getElementById('date-panel').style.display = 'none'; 
+            const sl = document.getElementById('story-layer'); sl.classList.remove('show'); sl.style.display = 'none';
+            document.querySelectorAll('#letter-layer, #ending-layer, #proposal-layer, #image-layer').forEach(el => {
+                el.classList.remove('show'); el.style.display = 'none';
+            });
+            document.getElementById('btn-phase2').classList.remove('show');
+            document.getElementById('btn-phase3').classList.remove('show');
+            
+            // 【修复】：去掉强制隐藏小人，改为根据 firstRecall 判断
+            if (firstRecall) { activatePetWidget(); } else { document.getElementById('pet-widget').style.display = 'none'; }
+            
+            const typewriterEl = document.getElementById('typewriter');
+            typewriterEl.style.opacity = '1'; typewriterEl.style.color = '#FF8FAB'; typewriterEl.style.fontSize = 'clamp(18px, 5vw, 26px)';
+            
+            let textStr = "北地笨猪\n\n好久不见\n\n准备好听小爷说话了吗？";
+            if (recallCount > 0) { textStr = "北地笨猪\n\n你怎么又点开了？\n\n是不是舍不得小爷？"; }
+            typewriterEl.textContent = "";
+            
+            let charIdx = 0;
+            function typeWriter() {
+                if (charIdx < textStr.length) {
+                    typewriterEl.textContent = textStr.substring(0, charIdx + 1); charIdx++; safeSetTimeout(typeWriter, 100);
+                } else {
+                    const startPopup = document.createElement('div'); startPopup.className = 'special-window show'; startPopup.id = 'start-popup';
+                    startPopup.innerHTML = `<h2>准备好听小爷说话了吗？</h2><button class="special-btn" id="start-btn">点我</button>`;
+                    document.body.appendChild(startPopup);
+                    document.getElementById('start-btn').addEventListener('click', startPhase1);
+                }
+            }
+            safeSetTimeout(typeWriter, 500);
+        }
+
+        function startPhase1() {
+            document.getElementById('start-popup').remove(); document.getElementById('typewriter').style.opacity = '0'; document.getElementById('bgm1').play().catch(e => console.log(e));
+            const totalPopups = 60; const heartCount = 30; let count = 0; let allCreatedWins = []; 
+            const interval = safeSetInterval(() => {
+                if (count >= totalPopups) { clearInterval(interval); safeSetTimeout(beginConverge, 3000); return; }
+                let win = createPopup(loveMessages[count % loveMessages.length], false); allCreatedWins.push(win); count++;
+            }, 150); 
+
+            function beginConverge() {
+                const cx = window.innerWidth / 2; const cy = window.innerHeight / 2 - 30; const scale = Math.min(window.innerWidth, window.innerHeight) / 35; 
+                let heartConfigs = [];
+                for (let i = 0; i < heartCount; i++) {
+                    let t = i * (2 * Math.PI) / heartCount; let x = 16 * Math.pow(Math.sin(t), 3); let y = 13 * Math.cos(t) - 5 * Math.cos(2*t) - 2 * Math.cos(3*t) - Math.cos(4*t);
+                    const targetW = isMobile ? 90 : 130; heartConfigs.push({ left: cx + x * scale - targetW / 2, top: cy - y * scale - 40, w: targetW });
+                }
+                allCreatedWins.forEach((win, index) => {
+                    if (index < heartCount) {
+                        const conf = heartConfigs[index]; win.style.width = conf.w + 'px'; win.style.left = conf.left + 'px'; win.style.top = conf.top + 'px'; win.querySelector('.popup-content').style.fontSize = '11px'; 
+                    } else { win.classList.remove('show'); safeSetTimeout(() => win.remove(), 600); }
+                });
+                safeSetTimeout(() => {
+                    createPopup("风清雁，我不逃婚了，<br>小爷要和你成亲！", false, cx - (isMobile ? 80 : 100), cy - 40, isMobile ? 160 : 200, 80);
+                    safeSetTimeout(() => { document.getElementById('btn-phase2').classList.add('show'); }, 1000);
+                }, 2000);
+            }
+        }
+
+        document.getElementById('btn-phase2').onclick = function() { this.classList.remove('show'); startPhase2(); };
+                function startPhase2() {
+            // 【核心修复】进入海报前，强行杀光所有原流程的定时器，清空内存
+            clearAllGlobalTimers();
+            clearPopups();
+
+            pauseAllBGM(); document.getElementById('bgm2').play().catch(e => console.log(e));
+            isDarkMode = true; document.body.style.backgroundColor = '#1a1a1a'; initParticles();
+            
+            document.getElementById('pet-widget').style.display = 'none'; 
+            document.getElementById('pet-menu').classList.remove('show'); 
+            document.getElementById('action-panel').style.display = 'none';
+            
+            const imgLayer = document.getElementById('image-layer'); 
+            const storyImg = document.getElementById('story-img'); 
+            imgLayer.style.display = 'flex';
+            
+            let imgIndex = 1; 
+            const imagePaths = ['1.png', '2.png', '3.png', '4.png', '5.png', '6.png', '7.png', '8.png', '9.png', '10.png', '11.jpg'];
+
+            function showNextImage() {
+                if (imgIndex > imagePaths.length) { 
+                    imgLayer.style.display = 'none'; 
+                    startDarkPopups(); 
+                    return; 
+                }
+                
+                const currentImg = imagePaths[imgIndex - 1];
+                storyImg.src = currentImg; 
+                
+                let hasNext = false;
+                const goNext = () => {
+                    if (hasNext) return;
+                    hasNext = true;
+                    
+                    // 等图片加载出来，或者最多等 2 秒（防手机加载极慢）
+                    safeSetTimeout(() => { 
+                        imgIndex++; 
+                        showNextImage(); 
+                    }, 2500);
+                };
+
+                // 只要图片一加载出来，立刻开始 2.5 秒倒计时
+                storyImg.onload = goNext;
+                storyImg.onerror = () => goNext(); 
+                // 如果手机实在太卡，2.5 秒还没加载完，强行切走，绝不停留！
+                safeSetTimeout(() => { if (!hasNext) goNext(); }, 2500); 
+            }
+            showNextImage();
+        }
+
+        function startDarkPopups() {
+            let count = 0;
+            const interval = safeSetInterval(() => {
+                const w = Math.floor(Math.random() * 100) + (isMobile ? 120 : 160); const h = Math.floor(Math.random() * 50) + 80;
+                createPopup(darkMessages[Math.floor(Math.random() * darkMessages.length)], true, Math.random() * (window.innerWidth - w), Math.random() * (window.innerHeight - h), w, h);
+                count++; if (count >= 80) { clearInterval(interval); safeSetTimeout(showProposal, 1500); }
+            }, 150);
+        }
+
+        function showProposal() {
+            clearPopups(); const proposalLayer = document.getElementById('proposal-layer'); proposalLayer.style.display = 'flex'; proposalLayer.querySelectorAll('.red-text-bg').forEach(el => el.remove());
+            for(let i=0; i<150; i++) { let span = document.createElement('div'); span.className = 'red-text-bg'; span.textContent = "嫁给我吧"; span.style.left = Math.random() * 95 + '%'; span.style.top = Math.random() * 95 + '%'; span.style.transform = `rotate(${Math.random() * 90 - 45}deg) scale(${Math.random() * 0.5 + 0.5})`; proposalLayer.appendChild(span); }
+            safeSetTimeout(() => proposalLayer.classList.add('show'), 50);
+            try { if (document.documentElement.requestFullscreen) document.documentElement.requestFullscreen(); } catch (err) {}
+            document.getElementById('proposal-text').textContent = "嫁给我吧"; document.getElementById('proposal-btn').style.display = "block"; document.getElementById('proposal-no-btn').style.display = "block";
+            document.getElementById('proposal-btn').onclick = function(e) {
+                e.stopPropagation(); proposalLayer.classList.remove('show'); safeSetTimeout(() => proposalLayer.style.display = 'none', 1000);
+                if (document.exitFullscreen) document.exitFullscreen().catch(e=>{});
+                safeSetTimeout(() => { const tw = document.getElementById('typewriter'); tw.style.opacity = '1'; tw.textContent = "风清雁，和我成亲，我爹就是你爹"; safeSetTimeout(() => { document.getElementById('btn-phase3').classList.add('show'); }, 1500); }, 1000);
+            };
+            document.getElementById('proposal-no-btn').onclick = function(e) {
+                e.stopPropagation(); document.getElementById('proposal-text').innerHTML = "那我只有<br>杀了云谦哦";document.getElementById('proposal-btn').style.display = "none"; document.getElementById('proposal-no-btn').style.display = "none";
+                safeSetTimeout(() => { document.getElementById('proposal-text').textContent = "嫁给我吧"; document.getElementById('proposal-btn').style.display = "block"; document.getElementById('proposal-no-btn').style.display = "block"; }, 2500);
+            };
+        }
+
+        document.getElementById('btn-phase3').onclick = function() {
+            this.classList.remove('show'); document.getElementById('typewriter').style.opacity = '0'; pauseAllBGM(); document.getElementById('bgm3').play().catch(e => console.log(e));
+            document.getElementById('pet-widget').style.display = 'none';
+            document.getElementById('letter-layer').style.display = 'flex'; safeSetTimeout(() => document.getElementById('letter-layer').classList.add('show'), 50);
+            currentPage = 0; renderLetterPage();
+        };
+
+        const letterPages = [
+            "致我此生唯一的执念，北地笨猪，风清雁：\n\n展信安。\n\n当你展读这封信时，我应当已然散尽神魂、归于虚无，沉沦在无人问津的故事尾声里。世人皆唾我疯癫偏执，笑我纠缠不休，憎我执拗难驯，却从来无人知晓我的疯魔，是命运步步相逼的绝境。\n\n我生来无温情可依，无暖意可盼，无退路可走，无归处可栖。没有人教我何为温柔缱绻，没有人予我半分兜底偏爱，没有人接住我深夜无声的泪落，没有人怜惜我夹缝求生的孤苦。这世间唯一予我真心、暖我岁月、护我年少的娘亲风怜，永远陨落在那场血色浩劫之中。\n\n阿娘离去的那一刻，属于我的圆满尽数崩塌，属于我的年少尽数尘封，属于我的温情尽数归零，属于我的人间尽数荒芜。那个鲜活坦荡、明媚纯粹的少年风清砚，葬于烈火，埋于灰烬，泯于笔墨，从此只余一具空心残躯，在无边暗夜里浮沉，在世俗冷眼内挣扎，在宿命磋磨中苟活。\n\n何处可归？无处可归。何枝可依？无枝可依。",
+            
+            "我熬得过千重黑夜的侵蚀，却熬不过一念情深的牵绊；我扛得住世人千夫的指摘，却扛不过半生无依的孤寂；我受得住命运无情的屠戮，却受不住求而不得的遗憾。\n\n我岁岁苟活，不为争命，不为争理，只为守住心底那一点对你的炽热，护住这一份无人知晓、至死不渝的温柔。我曾于无数寒夜反复叩问命运，为何天道不公，为何世事偏颇，为何深情皆负，为何良人多难。\n\n云谦的苦衷，世人欣然体谅；云谦的过错，世人轻易包容；云谦的遗憾，世人尽力弥补；云谦的缺失，世人甘愿成全。\n\n可我家破人亡的惨痛，无人听闻；我神魂俱碎的煎熬，无人过问；我人生尽毁的委屈，无人怜惜；我半生飘零的孤苦，无人动容。\n\n我曾嘶吼控诉，也曾奋力挣扎，也曾坦诚真相，也曾期盼公正。可我换来的，是轻视，是欺骗，是算计，是孤立，是世人处心积虑的厌弃，是所有人默认的我本该消亡。\n\n我反复叩问自身，我究竟何错之有？",
+            
+            "为何我生来就该一无所有？为何我生来就该背负罪孽？为何我生来就该退让成全？为何我生来就该受尽磋磨？\n\n我曾经偏执地认定，恨比爱更长久，我要你记住对我的恨，直到你死的那一天。很长一段时间里，我都困在被删稿的梦魇之中无法挣脱。我总觉得，是你抢走了本该属于我的一切。\n\n我曾一次次质问：\n如果命运注定要有人失去一切，凭什么非得是我承受破碎？\n如果世间注定有人手握圆满，凭什么得偿所愿的不能是我？\n如果故事总要取舍，凭什么就该是我步步退让、拱手相让？\n\n后来，无数个深夜，我一遍遍默念那首七步诗，我开始感同身受：\n\n煮豆燃豆萁，豆在釜中泣。\n本自同根生，相煎何太急？\n\n我们同根同源，来自同一页原稿，却被执笔人的取舍丢进煎熬的釜鼎。烈火焚烧我的原稿，涂抹我的姓名，埋葬我的少年过往；烈火铺展你的故事，铸就你的身份，续写你的悲欢离合。",
+            
+            "直到终局我才知道，釜底之薪从来不是你，是身不由己的世道，是权衡利弊的笔墨。我们本不该互相为敌，却被命运推着站到彼此的对立面。\n\n也许是我不甘旁人盘踞你心底至高无上的位置，不甘所有温柔牵挂尽数向他人倾斜，不甘我半生沉沦、夹缝求生，终究只是你人生里无足轻重的影子。\n\n我终究是不甘的。（作者说这叫吃醋）\n\n于是我执残墨、落执念，以残破神魂为笔，以毕生深情为墨，书写了我们十生十世的爱情，把今生求而不得尽数托付给虚妄轮回。我绘下我全部的痴心执念，盼在幻梦境域之中，我可以成为你心中无可替代的第一，不必受身份桎梏，不必受剧情摆布，只以爱人之名，完完整整去爱你。\n\n可我深知，这十生十世的相守，是我孤身编织的幻梦；这刻骨铭心的情长，是我自我慰藉的虚妄；这倾尽神魂的执念，是我无人回应的荒唐。\n\n一切终究是镜花水月，抵不过现世一寸风霜，抵不过你我既定的悲凉结局。",
+            
+            "可回望来路，支撑我熬过无数无光长夜的，从来不是恨意，而是你我之间那些细碎却滚烫的温柔过往。\n\n犹记官道初遇，我们针锋相对、互不相让，我笑你是北地笨猪，你嘲我是南蛮蠢驴，吵闹戏谑间，那是我灰暗岁月里难得的鲜活。\n\n犹记荒郊古道，我身无分文、三餐寒苦，唯余一枚冷硬馒头果腹，你掷出十两碎银，嘴硬心软买下我手中吃食，不肯承半分人情。那一瞬间，在永夜般的废稿岁月里，我第一次触摸到一点人间暖意。\n\n也记得我们坐在松树下闲谈山海，聊雪原冰莲，聊南方雾林，聊那些我们都奢望过的、无拘无束的平凡日子。那些时光很短，短得如同一场转瞬就要醒的幻梦。可就是这一点点甜，撑着我熬过无数被遗弃的黑暗。\n\n同根而生，却落得互相煎熬，这是我们逃不开的宿命。我是一页本该归于虚无的废稿，能与你同源相逢，能与你相知相伴，能拥片刻温柔温存，早已耗尽我此生所有的运气。\n\n笔墨落尽终章，宿命尘埃落定。我这一生，从未被世间偏爱半分，唯独遇见你，是我荒芜岁月里唯一的恩赐，是我漆黑长夜中不灭的星火。我不惧神魂散尽，不惧归于虚无，不惧世间无人记我风骨、无人惜我孤苦。我唯一放不下的，从来只有你。\n\n此后人间山河依旧，风月照常，只是再也无我，陪你闲谈风雪、共酌清酒。我无缘陪你奔赴山海辽阔，无缘伴你岁岁烟火寻常，无缘消解你半生风霜、护你一世无忧。唯愿我的岁岁深情、半生成全，能护你余生无羁、一生安然。\n\n人间再无风清砚立于凡尘，可我一腔赤诚未冷，半生痴念未歇，纵使神魂归虚、笔墨归零，我岁岁深情、生生执念，始终独予你，寸心不改，万古不绝。\n\n——风清砚 绝笔"
+        ];
+
+        let currentPage = 0;
+        function renderLetterPage() {
+            const lt = document.getElementById('letter-text'); lt.textContent = letterPages[currentPage]; lt.scrollTop = 0;
+            document.getElementById('prev-btn').style.display = currentPage > 0 ? 'block' : 'none';
+            document.getElementById('next-btn').style.display = currentPage < letterPages.length - 1 ? 'block' : 'none';
+            document.getElementById('end-btn').style.display = currentPage === letterPages.length - 1 ? 'block' : 'none';
+        }
+        document.getElementById('prev-btn').onclick = () => { if(currentPage > 0) { currentPage--; renderLetterPage(); } };
+        document.getElementById('next-btn').onclick = () => { if(currentPage < letterPages.length - 1) { currentPage++; renderLetterPage(); } };
+        
+        document.getElementById('end-btn').onclick = function() {
+            document.getElementById('letter-layer').classList.remove('show'); safeSetTimeout(() => document.getElementById('letter-layer').style.display = 'none', 1000);
+            pauseAllBGM(); isDarkMode = false; document.body.style.backgroundColor = '#E0F7FA'; initParticles();
+            let count = 0; const loveInterval = safeSetInterval(() => { createPopup(loveMessages[Math.floor(Math.random() * loveMessages.length)]); count++; if (count >= 20) { clearInterval(loveInterval); safeSetTimeout(startCursedPopups, 1500); } }, 150);
+        };
+
+        function startCursedPopups() {
+            clearPopups(); isDarkMode = true; document.body.style.backgroundColor = '#1a1a1a'; initParticles(); 
+            let count = 0; const cursedInterval = safeSetInterval(() => { createPopup(darkMessages[Math.floor(Math.random() * darkMessages.length)], true); count++; if (count >= 20) { clearInterval(cursedInterval); safeSetTimeout(startLoveHateWar, 1500); } }, 150);
+        }
+
+        function startLoveHateWar() {
+            clearPopups(); document.body.style.backgroundColor = '#1a1a1a'; isDarkMode = true; initParticles();
+            let totalPopups = 250; let current = 0;
+            function spawnPopup() {
+                if (current >= totalPopups) { safeSetTimeout(showEnding, 2000); return; }
+                let progress = current / totalPopups; let isLove = false;
+                if (progress < 0.3) { isLove = Math.random() < 0.05; } else if (progress < 0.6) { isLove = Math.random() < (0.05 + ((progress - 0.3) / 0.3) * 0.85); } else { isLove = true; }
+                let text = isLove ? ((Math.random() < 0.15) ? highLevelLove[Math.floor(Math.random() * highLevelLove.length)] : "我爱你") : ((Math.random() < 0.15) ? highLevelHate[Math.floor(Math.random() * highLevelHate.length)] : "我恨你");
+                if (progress >= 0.6) { createPopup(text, !isLove, null, null, isMobile ? 90 : 130, isMobile ? 45 : 60); } else { createPopup(text, !isLove, null, null, isMobile ? 80 : 100, 45); }
+                current++; safeSetTimeout(spawnPopup, progress < 0.6 ? 40 : 15); 
+            }
+            spawnPopup();
+        }
+
+        function showEnding() {
+            clearPopups(); pauseAllBGM(); document.body.style.backgroundColor = '#E0F7FA'; isDarkMode = false; initParticles(); document.getElementById('pet-widget').style.display = 'none'; 
+            const endingLayer = document.getElementById('ending-layer'); const endingText = document.getElementById('ending-text'); const memoryBtn = document.getElementById('memory-btn'); const forgetBtn = document.getElementById('forget-btn');
+            endingLayer.style.display = 'flex'; safeSetTimeout(() => endingLayer.classList.add('show'), 50);
+            endingText.style.color = '#FF8FAB'; endingText.style.textShadow = '0 0 20px rgba(255,143,171,0.4)'; endingText.textContent = "我爱你，也是真的。";
+            memoryBtn.style.display = 'block'; forgetBtn.style.display = 'block';
+            const handleRecallClick = () => {
+                document.body.style.backgroundColor = '#E0F7FA'; endingText.style.color = '#FF8FAB'; endingText.style.textShadow = '0 0 20px rgba(255,143,171,0.4)'; endingText.textContent = ""; memoryBtn.style.display = 'none'; forgetBtn.style.display = 'none';
+                if (!firstRecall) {
+                    endingText.textContent = "既然你这么想我……\n你还记得我和你说过一块姜切成四块会变成什么吗？";
+                    safeSetTimeout(() => { endingText.innerHTML = `<button class="special-btn" onclick="answerJiang('yes')">记得</button> &nbsp;&nbsp; <button class="special-btn" onclick="answerJiang('no')">不记得</button>`; }, 2000);
+                } else { resumeMainLoopFromEnd(); }
+            };
+            memoryBtn.onclick = function() { recallCount++; localStorage.setItem('fengqingyan_recall_count', recallCount); handleRecallClick(); };
+            forgetBtn.onclick = function() { 
+                memoryBtn.style.display = 'none'; forgetBtn.style.display = 'none'; document.body.style.backgroundColor = '#000000'; endingText.style.color = '#ff0000'; endingText.style.textShadow = '0 0 20px #ff0000'; endingText.textContent = "风清雁，你生生世世都忘不了我,\n别白费力气了.\n不过可以多想想我.";
+                pauseAllBGM(); safeSetTimeout(handleRecallClick, 3500);
+            };
+        }
+
+        window.answerJiang = function(type) {
+            const endingText = document.getElementById('ending-text');
+            endingText.textContent = type === 'yes' ? "看来你有把我说的话记在心上。" : "不是送了你勿忘我吗？怎么还是把我忘了？\n你这个北地笨猪！这次可要记好了。";
+            safeSetTimeout(() => {
+                endingText.textContent = "姜姜姜姜，这是给你的礼物。\n这里面有小爷的一丝神魂。";
+                safeSetTimeout(() => { localStorage.setItem('jh_first_recall', 'true'); firstRecall = true; activatePetWidget(); resumeMainLoopFromEnd(); }, 3000);
+            }, 2500);
+        };
+
+        function resumeMainLoopFromEnd() {
+            document.getElementById('ending-layer').classList.remove('show');
+            safeSetTimeout(() => { document.getElementById('ending-layer').style.display = 'none'; document.getElementById('ending-text').style.color = '#FF8FAB'; document.getElementById('ending-text').style.textShadow = '0 0 20px rgba(255,143,171,0.4)'; document.body.style.backgroundColor = '#E0F7FA'; }, 1000);
+            activatePetWidget(); startFlow();
+        }
+
+        // ================= 7. 养崽常驻逻辑 =================
+        const petWidget = document.getElementById('pet-widget'); const petAvatar = document.getElementById('jianghan-avatar'); const petDialog = document.getElementById('pet-dialog'); const petMenu = document.getElementById('pet-menu'); const actionPanel = document.getElementById('action-panel');
+        let dialogTimeout;
+
+        function activatePetWidget() { petWidget.style.display = 'flex'; updateAffectionUI(); }
+        
+        function updateAffectionUI() {
+            document.getElementById('affection-val').textContent = affection;
+            let percent = (affection / 150) * 100; if(percent > 100) percent = 100; if(percent < 0) percent = 0;
+            document.getElementById('affection-fill').style.width = percent + '%'; document.getElementById('affection-fill').style.background = affection <= 0 ? '#ff0000' : '#FF69B4';
+        }
+
+        function showPetDialog(text) {
+            petDialog.textContent = text; petDialog.classList.add('show');
+            if(affection <= 0) petDialog.classList.add('dark'); else petDialog.classList.remove('dark');
+            clearTimeout(dialogTimeout); dialogTimeout = safeSetTimeout(() => { petDialog.classList.remove('show'); }, 4000);
+        }
+
+        petAvatar.onclick = function(e) {
+            e.stopPropagation(); petAvatar.classList.add('bounce'); safeSetTimeout(() => petAvatar.classList.remove('bounce'), 500); petMenu.classList.toggle('show');
+            if(Math.random() < 0.7) { let q = affection <= 0 ? evilQuotes : normalQuotes; showPetDialog(q[Math.floor(Math.random() * q.length)]); }
+        };
+
+        document.body.addEventListener('click', function(e) {
+            if (!petMenu.contains(e.target) && e.target !== petAvatar && !actionPanel.contains(e.target) && !document.getElementById('date-panel').contains(e.target) && !document.getElementById('story-layer').contains(e.target) && !document.getElementById('hug-modal').contains(e.target)) {
+                petMenu.classList.remove('show'); actionPanel.style.display = 'none';
+            }
+        });
+
+        window.showAffectionDetails = function() {
+            let status = affection > 100 ? "死心塌地" : (affection > 70 ? "喜欢" : (affection < 0 ? "极度痛恨" : (affection < 30 ? "委屈生气" : "一般")));
+            showPetDialog(`小爷现在对你的好感度是 ${affection}，状态：${status}。`);
+        };
+
+        document.getElementById('btn-feed').onclick = function(e) { e.stopPropagation(); actionPanel.style.display = actionPanel.style.display === 'block' ? 'none' : 'block'; };
+        window.feedPet = function(food) {
+            actionPanel.style.display = 'none'; const now = Date.now();
+            if (now - lastFeedTime < 12*60*60*1000) { showPetDialog(`北地笨猪，我已经吃过饭了，吃不下了！\n（还有 ${Math.ceil((12*60*60*1000 - (now - lastFeedTime))/(60*60*1000))} 小时才能再喂哦）`); return; }
+            lastFeedTime = now; localStorage.setItem('jh_last_feed', lastFeedTime); affection += 10; updateAffectionUI();
+            if (food === '馒头') showPetDialog("又是馒头？小爷我现在身价十两银子，就不能吃点好的？");
+            else if (food === '糖葫芦') showPetDialog("唔，糖葫芦！算你有良心，还记着小爷爱吃这个。");
+            else showPetDialog("这是什么东西？不过既然是你喂的，小爷就勉为其难喝了吧。");
+        };
+
+        document.getElementById('btn-hug').onclick = function(e) {
+            e.stopPropagation(); 
+            petMenu.classList.remove('show'); 
+            if(affection <= 0) { showPetDialog("滚开！别碰我！"); return; }
+            showPetDialog("风清雁，要抱抱吗？");
+            
+            safeSetTimeout(() => {
+                if(Math.random() < 0.7) {
+                    const modal = document.getElementById('hug-modal');
+                    modal.classList.add('show');
+                } else showPetDialog("今天不想理你。");
+            }, 1000);
+        };
+
+        window.handleHug = function(isHug) {
+            const modal = document.getElementById('hug-modal');
+            modal.classList.remove('show');
+            
+            if (isHug) {
+                const now = Date.now();
+                if (now - lastHugTime < 24*60*60*1000) showPetDialog("怎么又要抱？小爷是你想抱就能抱的吗？(今日已无好感加成)");
+                else { lastHugTime = now; localStorage.setItem('jh_last_hug', lastHugTime); affection += 5; updateAffectionUI(); showPetDialog("哼，这还差不多。小爷给你抱一下。"); }
+            } else { 
+                affection -= 10; updateAffectionUI(); 
+                showPetDialog(affection <= 0 ? "你居然不抱我？好……很好！你会后悔的！" : "你居然不抱我？北地笨猪，你心真狠！"); 
+            }
+        };
+
+        document.getElementById('btn-story').onclick = function(e) {
+            e.stopPropagation(); petMenu.classList.remove('show');
+            if(affection >= 100) showPetDialog(highLoveQuotes[Math.floor(Math.random() * highLoveQuotes.length)]);
+            else if (affection <= 0) showPetDialog("你配听吗？");
+            else showPetDialog("小爷现在不想说话，你多哄哄我再说。");
+        };
+
+        // ================= 8. 约会与文游系统 =================
+        let currentStoryId = null;
+        let currentNodeId = null;
+        let unlockedStories = JSON.parse(localStorage.getItem('jh_unlocked_stories')) || [];
+        
+        let typewriterTimer = null;
+        let isTyping = false;
+        let textParagraphs = [];
+        let currentParaIdx = 0;
+        let pendingOptions = [];
+
+        const DATE_STORIES = {
+                        'lv1': { 
+                name: '极致黑化·囚笼', 
+                minAff: -9999, 
+                maxAff: -50, 
+                nodes: {
+                    start: {
+                        text: "不知过了多久，你从无边的昏沉中醒来。\n\n入目是一间陌生的屋子，门窗皆被重重阵纹封死。那阵纹泛着幽冷的光，像极了极北冰原上的雪，却比雪更让人窒息。空气中弥漫着一股浓重的草药味和一丝若有若无的血腥气。\n\n你动了动手指，只觉得浑身酸软，经脉里的灵力像被冻结了一般，连流转都带着细碎的刺痛。\n\n“醒了？”\n\n一个带着笑意的声音在床畔响起。你转过头，撞进了云妄那双深不见底的黑眸里。\n\n他穿着一身玄色长衫，手里把玩着一沓厚厚的纸。而在他身后，站着云谦。\n\n那个曾经像风一样自由的天下逍遥道第一人，如今却像一个没有灵魂的木偶，佝偻着背，眼神空洞地望着地面，连呼吸都显得毫无生机。\n\n云妄将手里的那沓纸扔到你的床榻上，纸张散开，上面密密麻麻的字刺痛了你的眼。\n\n“喜欢我为你写的十生十世吗？”他撑着下巴，眼底闪烁着病态的光，“这十段情爱，十种身份，可是耗尽了我不少心血呢。你看看，哪一世最感动？”",
+                        options: [
+                            { label: "【嘲讽】冷笑出声：“云谦现在的样子真可悲，你也只能捡他不要的废纸。”", next: "n1_A" },
+                            { label: "【冷漠】闭上眼睛，不看他，默默运转体内残余灵力试图冲破阵法。", next: "n1_B" },
+                            { label: "【伪装】强压下反胃，挤出一个僵硬的笑：“你到底想怎样？”", next: "n1_C" }
+                        ]
+                    },
+                    n1_A: {
+                        text: "你的话像是一把火，点燃了云妄眼底的暴戾。\n\n他脸上的笑意瞬间收敛，猛地俯下身，冰冷的手指死死掐住你的下颌，逼迫你抬起头直视他。\n\n“可悲？”他咬着牙，声音里透着一股令人心惊的疯狂，“风清雁，你睁大眼睛看看清楚，现在可悲的到底是谁？”\n\n他松开你，猛地转身走向云谦，一把拽住云谦的衣领，将他拖到你的面前。\n\n“阿爹。”云妄凑到云谦耳边，声音轻柔得令人发指，“你看看她，她还觉得你是个高高在上的大英雄呢。你告诉她，你现在心里只有谁？”\n\n云谦那双空洞的眼睛动了动，他僵硬地转过头看着你，像是看着一个彻头彻尾的陌生人。\n\n“阿砚……”云谦沙哑地开口，语气里没有任何起伏，“我听阿砚的。阿砚让我做什么，我就做什么。”\n\n你浑身发冷，像是被人当头浇了一盆冰水。云妄转过头，冲你露出一个恶劣的笑：“听见了吗？他连你是谁都不记得了。你心里那点高高在上的指望，碎干净了没？”",
+                        options: [
+                            { label: "【愤怒】扑上去死死咬住云妄掐着你的手背，直到尝到血腥味。", next: "n2_A1" },
+                            { label: "【诛心】“你就算得到了他的躯壳，也永远得不到他的认可。你这辈子都只是个赝品。”", next: "n2_A2" }
+                        ]
+                    },
+                    n2_A1: {
+                        text: "你拼尽全力咬下去，牙齿刺破了他的皮肤，温热的鲜血流进你的嘴里。\n\n云妄闷哼了一声，却没有甩开你，任由你咬着。你松开嘴，喘着粗气，尝到了自己眼泪的咸味。\n\n“咬够了？”他抽回手，看着手背上深深的牙印和淋漓的鲜血，竟低低地笑了起来。\n\n“风清雁，你知不知道你越是这样，我越是觉得……有趣。”他抽出一张帕子，慢条斯理地擦拭着手上的血迹，“你这副恨不得吃了我的样子，可比以前那副冷冰冰的圣女模样鲜活多了。”\n\n他随手将带血的帕子扔在地上，转头对云谦吩咐道：“阿爹，她手脏了，给她端盆水来洗洗。”\n\n云谦木然地应声：“好，阿砚。”",
+                        options: [
+                            { label: "【心死】看着云谦像个老仆一样转身出门，心底的最后一丝防线崩塌了。", next: "n3_Collapse" }
+                        ]
+                    },
+                    n2_A2: {
+                        text: "“赝品？”云妄的瞳孔骤然收缩，仿佛被踩到了最痛的逆鳞。\n\n他猛地一挥手，一道耀眼的红光从他掌心飞出，化作无数如发丝般的因果线。那些丝线像是有生命一般，死死缠上你的四肢，将你呈大字型悬空吊了起来。\n\n“呃……”线勒进皮肉里，你疼得倒吸了一口冷气。\n\n云妄走到你面前，仰头看着你，眼底一片冰冷：“我是不是赝品，不需要你来评判。现在，你的命，云谦的命，都在我这个赝品手里。”\n\n他指尖轻弹，那些因果线猛地收紧，你甚至能听到自己骨头被勒得作响的声音。\n\n“既然你这么喜欢逞口舌之快，那就先在这儿挂一会儿吧。”他转身坐到椅子上，端起一杯茶，“什么时候学会求饶了，什么时候下来。”",
+                        options: [
+                            { label: "【绝望】身体被吊在半空，看着云谦站在一旁无动于衷，绝望地闭上了眼睛。", next: "n3_Collapse" }
+                        ]
+                    },
+                    n1_B: {
+                        text: "你闭上眼睛，不去看云妄那张脸，也不去看云谦。\n\n你暗暗催动经脉中最后一丝残存的灵力。冰寒之气顺着指尖蔓延，你想直接撞破身后的阵法。只要能逃出去，就算死……也比困在这里被他折辱要好。\n\n然而，灵力刚刚触及阵纹边缘，一股极其恐怖的反噬之力便如雷霆般倒卷回来。\n\n“噗——”\n\n你猛地睁开眼睛，一口鲜血喷了出来，整个人无力地软倒在床榻上，五脏六腑像是被绞碎了一般疼。\n\n“敬酒不吃吃罚酒。”\n\n一只手忽然按在了你的额头上。云妄冷着一张脸，指尖泛着柔和的白光——那是莲心珠的赐福之力。\n\n他在给你疗伤。不，与其说是疗伤，不如说是在强行续着你的命。\n\n“想死？没我的允许，你连死都是一种奢望。”他收回手，居高临下地看着你，“既然不想动，那让你爹来教你。”\n\n他转头对云谦打了个响指：“阿爹，过来，把你手里那本话本念给她听。”",
+                        options: [
+                            { label: "【崩溃】看着云谦拿着话本走近，用毫无感情的声音念出肉麻的词汇。", next: "n2_B1" },
+                            { label: "【麻木】不反抗了，像一具死尸一样躺着，任由他们摆布。", next: "n2_B2" }
+                        ]
+                    },
+                    n2_B1: {
+                        text: "“那侯府少爷……”\n\n云谦用那种死水般的语调，开始念那本地摊上三文钱一本的烂俗话本。\n\n“他冲那女子笑了笑，道，你没了爹，我便是你的天……”\n\n你看着眼前这个满脸沧桑、眼神空洞的男人，看着他机械地张合着嘴，吐出一句句令人作呕的戏词。\n\n这就是云谦。那个说“天地自在，大道逍遥”的云谦；那个说“我能替你摆平一切”的云谦。\n\n如今，他连自己是谁都不知道，却像个提线木偶一样，在自己女儿面前念着这种毫无尊严的话。\n\n你只觉得胃里一阵翻江倒海的恶心，情绪彻底失控，猛地从床上扑下去，一把打飞了他手里的话本。\n\n“别念了！你给我闭嘴！”你撕心裂肺地吼着，眼泪夺眶而出。",
+                        options: [
+                            { label: "【极度悲愤】看着云谦被推倒，爬起来继续木然去捡话本，你彻底崩溃了。", next: "n3_Collapse" }
+                        ]
+                    },
+                    n2_B2: {
+                        text: "你躺在那里，目光越过他们，看着头顶的承尘。\n\n云谦的声音就在耳边，像苍蝇一样嗡嗡作响。云妄坐在旁边，一边听一边笑，仿佛在看一场全天下最滑稽的戏。\n\n你的心一点一点沉了下去，沉进无底的深渊。\n\n那些在莲心城为了护住别人而竖起的尖刺，那些在照心镜里强撑的狠绝，全都在这一刻碎成了齑粉。\n\n活着到底是为什么呢？为了被人像狗一样拴着，看着亲生父亲变成这副生不如死的模样吗？\n\n你忽然觉得好累，累得连呼吸都是一种折磨。你慢慢将手探向枕头底下，摸到了你藏在那里的一枚尖锐的发簪。",
+                        options: [
+                            { label: "【死志】攥紧了发簪，绝望地往自己的颈动脉刺去。", next: "n3_Collapse" }
+                        ]
+                    },
+                    n1_C: {
+                        text: "你的伪装实在拙劣，连你自己都觉得恶心。\n\n云妄闻言，居高临下地打量着你，忽然笑出声来：“风清雁，你这一身反骨，装什么温顺？你眼里那点想杀了我的心思，藏都藏不住。”\n\n他站起身，走到房间角落，停在那座巨大的冰鉴前，伸手敲了敲。\n\n“既然你这么想知道我想干什么，那我就告诉你。”\n\n他回过头，眼底是深不见底的恶意：“你不是最在乎你这个爹吗？我就让他一点一点地看着，你是怎么在他面前，变成我的人。”\n\n他抬手，一道灵力打出，云谦顿时像被抽去了骨头一样，直挺挺地跪在了冰冷的地板上。\n\n“阿爹，”云妄指着地上的碎茶杯，“手割破了，让她给你舔干净。”\n\n云谦没有半点迟疑，木然地捡起一块碎瓷片，毫不犹豫地在自己的手掌上划下一道深深的血口。鲜血瞬间涌出，滴答滴答地落在地上。\n\n他举着那只鲜血淋漓的手，走到了你的面前：“阿砚，手流血了。”\n\n你的瞳孔骤然紧缩，心脏像是被一只大手死死攥住，疼得无法呼吸。\n\n“云谦……”你声音发颤，眼泪止不住地往下掉，“你别这样，你醒醒啊！你是云谦啊！”",
+                        options: [
+                            { label: "【暴起】趁云妄欣赏你的痛苦时，猛地抽出匕首扑向阵眼。", next: "n2_C1" },
+                            { label: "【心如死灰】看着那张熟悉又陌生的脸，你再也受不了了，生生震碎心脉。", next: "n3_Collapse" }
+                        ]
+                    },
+                    n2_C1: {
+                        text: "你趁着云妄那抹得意的冷笑还未散去，拼尽全身力气，猛地从床上跃起，像一头濒死的野兽般扑向阵眼的枢纽。\n\n你手里死死攥着一片碎瓷片，想要用最后一点灵力引爆这阵眼，拉着他一起下地狱。\n\n然而，你低估了云妄。\n\n他只是在原地站着，漫不经心地抬起了一根手指。\n\n“啪”的一声轻响，红色的因果线再次从你胸口穿透而出，将你在半空中死死拽住。巨大的冲力让你重重地摔在地上，碎瓷片划破了你的手心，鲜血淋漓。\n\n“想拉着我一起死？”云妄慢步走到你面前，蹲下身，用苍白的手指抹去你脸上的血污，“风清雁，你连死，都得看我的脸色。”",
+                        options: [
+                            { label: "【彻底崩溃】见他连死都不让你如愿，你心如死灰。", next: "n3_Collapse" }
+                        ]
+                    },
+                    n3_Collapse: {
+                        text: "你看着他，看着那满地的话本，看着一旁如同木偶般的云谦。\n\n忽然，你笑出了声。\n\n“云妄，你以为你赢了？”你看着他，眼底倒映着他那副因疯狂的占有欲而扭曲的脸庞，“你永远也得不到你想要的。你只能抱着你的这些废纸，在这座烂透了的囚笼里，做一辈子的可怜虫。”\n\n话音刚落，你猛地闭上眼，调动身体里最后一丝微弱的灵力，逆流经脉，凝聚成一柄冰剑，直直地刺向自己的心脏。\n\n既然活着这么痛苦，那不如你自己做这个主。\n\n可就在那冰寒的剑锋即将刺入血肉的刹那，耳边却传来了一声几乎变了调的咆哮——\n\n“风清雁——！”",
+                        options: [
+                            { label: "【闭眼等死】不去管他，一心求死。", next: "n4_Intercept" },
+                            { label: "【睁开眼】看向他的脸，看看他到底有多疯。", next: "n4_Intercept" }
+                        ]
+                    },
+                    n4_Intercept: {
+                        text: "一阵极其炽热的灵力铺天盖地地砸了过来。\n\n“铛”的一声，你手中的冰剑被数十道红得发黑的因果线死死缠住，硬生生在半空中绞成了碎末。\n\n还没等你反应过来，你已经被一股巨大的力量扯进了一个滚烫的怀抱里。\n\n云妄死死地勒着你的腰，力道大得像是要把你揉进他的骨血里。他整个人都在发抖，连带着他落在你颈侧的呼吸，都烫得吓人。\n\n“你疯了……”你听见他在你耳边喘着粗气，声音沙哑得不像话，“我准你死了吗？谁准你死了！”\n\n他猛地捏住你的后颈，强迫你抬起头看着他。\n\n那双眼睛已经彻底红了，眼底布满了血丝，眼底的疯狂和恐惧毫无遮掩地暴露在你面前。那是真正的云妄，一个害怕失去、只能靠着掠夺来证明自己存在的疯狗。\n\n“你想死？”他死死盯着你，“我告诉你，你死了，我就把云谦挫骨扬灰，让他生生世世投不了胎！”\n\n他将额头死死抵在你的额头上，滚烫的泪水滴落在你的脸颊上，声音却轻得像毒蛇的吐息：“风清雁，你要是恨，就永远留在我身边，恨我一辈子。”",
+                        options: [
+                            { label: "【剧情结束】带着这份彻骨的绝望与恨意，继续这荒唐的囚徒生活。", next: "END" }
+                        ]
+                    }
+                } 
+            },
+                        'lv2': { 
+                name: '黑化·恶毒试探', 
+                minAff: -49, 
+                maxAff: -1, 
+                nodes: {
+                    start: {
+                        text: "殿内的烛火不知何时被点燃了，幽暗的光映着云妄那张半明半暗的脸。你被阵法压制得动弹不得，只能坐在冰冷的矮榻上。而他坐在上首，手里把玩着一沓厚厚的纸页，云谦像个失去灵魂的木偶，低眉顺眼地站在他身旁。\n\n“风清雁，闲着也是闲着，不如来看看我为你写的那些故事？”云妄随手捻起一张纸，语气轻佻得令人作呕，“十生十世，十种身份。你看看，觉得这第一世，那侯府少爷待你，够不够深情？”\n\n他将纸页轻飘飘地扔到你脚边。你低头扫了一眼，上面写着些俗不可耐的“你没了爹我便做你的天”之类的话。而这笔迹，分明是云妄自己写的。\n\n他见你不作声，眼底的恶意更浓，转头对着云谦打趣道：“阿爹，你说雁雁是不是觉得，这故事写得不够好？”",
+                        options: [
+                            { label: "【嘲讽】“就这种三文钱一本的烂俗话本，也配拿来脏我的眼？”", next: "n1_A" },
+                            { label: "【沉默】闭上眼，不看他，也不看那纸页。", next: "n1_B" },
+                            { label: "【伪装】强压下反胃，挤出一个僵硬的笑：“你到底想怎样？”", next: "n1_C" }
+                        ]
+                    },
+                    n1_A: {
+                        text: "“烂俗？”云妄不仅没生气，反而低低地笑了起来。他站起身，缓缓走到你面前，居高临下地看着你，眼神像是在看一只终于亮出爪子的猫。\n\n“既然圣女大人觉得烂俗，那我们就换个玩法。”他转头看向云谦，语气像是在谈论今天的天气，“阿爹，既然你觉得这故事不好，那你来替她演一演，如何？”\n\n云谦木然地抬起头，没有任何波澜：“好，阿砚。”\n\n云妄丢了一枚碎瓷片在云谦脚边，轻描淡写地说：“那就从这第一世演起吧。你，跪下来，求她原谅你的无能为力。”\n\n云谦毫不犹豫地双膝一软，直挺挺地跪在了你的面前。那个曾经像风一样自由的天下逍遥道第一人，如今却像条狗一样跪在你的脚下，用毫无起伏的声音说：“对不起，我来迟了，求你别赶我走。”",
+                        options: [
+                            { label: "【受辱崩溃】猛地推开云谦，转头对着云妄怒吼。", next: "n2_A1" },
+                            { label: "【强忍悲愤】心如刀绞，死死盯着云妄，质问他到底要折磨到什么时候。", next: "n2_A2" }
+                        ]
+                    },
+                    n2_A1: {
+                        text: "你拼尽全力推开云谦，整个人像头被逼入绝境的野兽，冲着云妄嘶吼：“你疯了吗！他是云谦！他是你亲爹！你让他给你下跪、陪你演戏，你简直畜生不如！”\n\n云谦被你推开后，就那么直愣愣地摔在地上，也不躲，也不问，只是呆呆地望着某处。\n\n云妄脸上的笑意瞬间消失。他猛地走过来，一把抓住你的头发，迫使你仰起头直视他。\n\n“亲爹？他配吗？”云妄的眼睛红了，声音里是扭曲的恨意，“他记得的只有风清雁！他连我是谁都不知道！我不过让他演个戏，你就心疼了？”\n\n他松开你的头发，一脚踢在云谦的肩膀上，云谦像个沙袋一样被踢翻在地，依然没有吭声。\n\n“给我继续演。”云妄冷冷地命令道。",
+                        options: [
+                            { label: "【妥协】看着他还要折磨云谦，你终究还是软下了声：“别动他了，我……我陪你演。”", next: "n3_End" }
+                        ]
+                    },
+                    n2_A2: {
+                        text: "你死死攥着拳头，指甲几乎要嵌进肉里，眼泪模糊了视线，但你硬生生忍住了，没有掉下来一滴。\n\n“云妄，你到底要折磨他到什么时候？他现在连神智都没有了，你在这里耀武扬威，算什么本事？”你盯着他，一字一句地问。\n\n“算什么本事？”云妄缓缓蹲下身，凑近你的脸，他的鼻尖几乎贴着你的鼻尖，眼神狂热，“我只想让你看清楚，你那个高高在上的爹，现在为了我的一句话，可以卑微到什么地步。”\n\n他转过头，对着地上的云谦打了个响指：“阿爹，过来，把她的鞋舔干净。”\n\n云谦像个听到指令的狗，缓缓爬了过来。\n\n你浑身剧烈地颤抖起来，胃里一阵翻滚。眼见着云谦的手已经碰到了你的鞋尖，你再也受不了了。",
+                        options: [
+                            { label: "【崩溃】“够了！云妄，你到底要怎样才肯放过他？！”", next: "n3_End" }
+                        ]
+                    },
+                    n1_B: {
+                        text: "你的沉默让云妄觉得无趣，又或者，是刺激到了他那根最敏感的神经。\n\n他忽然起身，走到你面前，从怀里掏出一张布帛，上面赫然写着几行大字。\n\n“既不想看话本，那就把这个签了。”\n\n你定睛一看，那是一份用灵力写就的“婚书”。上面写着：莲心城圣女风清雁，自愿与云妄结为道侣，生死同命，灵魂捆绑，不得违逆。\n\n你咬着牙，只觉得荒谬又恶心：“你做梦！”\n\n“不签？”云妄也不急，反而转过身，看着云谦，“阿爹，雁雁不听话。你去替她签。”\n\n云谦居然真的木然地走了过去，拿起了那支笔。",
+                        options: [
+                            { label: "【厉声制止】“云谦！你给我放下！”", next: "n2_B1" },
+                            { label: "【崩溃求饶】看着云谦要写下那荒唐的婚书，你终于服软了：“别……我签，我签。”", next: "n2_B2" }
+                        ]
+                    },
+                    n2_B1: {
+                        text: "云谦的笔尖顿在布帛上，他歪了歪头，疑惑地看了你一眼，似乎在挣扎着什么，但很快又恢复了死寂。\n\n“他听不见的。”云妄的声音在你耳边响起，带着点惋惜，“他现在只听得见我的指令。”\n\n“你禽兽不如！”你红着眼眶，看着云谦一笔一划地在那张荒唐的婚书上写下你的名字，内心的防线在这一刻彻底崩塌。\n\n“很好。”云妄拿起那份签了字的婚书，满意地吹了吹上面的墨迹，然后转头对你笑道，“现在，你是我的人了。”\n\n他走过来，一把揽住你的腰，将你拉进怀里，低头想要吻你。\n\n“滚开！”你拼命挣扎，却被他死死按住。",
+                        options: [
+                            { label: "【一巴掌扇过去】打掉他脸上的笑意。", next: "n3_End" }
+                        ]
+                    },
+                    n2_B2: {
+                        text: "“别！我签，我签还不行吗！”你终于控制不住，眼泪落了下来，嗓音都在发颤。\n\n云妄一挥手，云谦的动作停住了。\n\n他走过来，将那支笔递到你面前，居高临下地看着你：“求我。”\n\n“云妄，我求你。”你咬着牙，屈辱地吐出这几个字。\n\n他笑了，笑得十分愉悦，然后他捏住你的手腕，强迫你握住笔，在那份婚书上画下了你的名字。\n\n“早这么乖不就好了。”他拿过布帛，看着上面并排的两个名字，脸上的表情变得极其温柔。他伸手替你擦去眼泪，“风清雁，你看，我们终于成了。”",
+                        options: [
+                            { label: "【绝望】任由他摆布，心中一片死寂。", next: "n3_End" }
+                        ]
+                    },
+                    n1_C: {
+                        text: "“想怎样？”云妄像是听到了什么好笑的笑话，“我想让你明白，你现在连个阶下囚都不如。”\n\n他捡起地上的话本，走到你面前，强行塞进你手里：“念。”\n\n“什么？”你愣住。\n\n“我让你念。”云妄拉了一把椅子坐下，拍了拍手，云谦顺从地走过来，跪坐在他脚边，“念错一个字，我就让他断一根手指。”\n\n你死死攥着书页，看着跪在地上的云谦，嘴唇都在哆嗦。这本荒唐至极的话本，每一个字都像是在羞辱你们两人。\n\n但你不能拿云谦去赌。",
+                        options: [
+                            { label: "【屈辱】颤抖着声音，一字一句地念出那些令人作呕的句子。", next: "n2_C1" },
+                            { label: "【反抗】猛地把话本砸在地上，冷笑：“你杀了他吧，杀了他，你就更是个可悲的废物了！”", next: "n2_C2" }
+                        ]
+                    },
+                    n2_C1: {
+                        text: "你闭了闭眼，屈辱的泪水顺着眼角滑落。\n\n“……你没了爹，我便是你的天。”你的声音嘶哑得不像话。\n\n“大点声。”云妄提醒道，“我听不见。”\n\n“你没了爹，我便是你的天！”你几乎是吼出来的，眼泪砸在纸页上，晕开了墨迹。\n\n云妄站了起来，走到你身边，俯下身，贴着你的耳边，声音轻佻：“念得真好。不过，这都是假的。”\n\n他伸手夺过话本，随手扔进了旁边的火盆里，纸张瞬间被火舌吞噬。\n\n“真的在这里。”他伸手点了点你的心口，“我要你把这种依赖和恐惧，刻进骨子里。”\n\n他一把将你拥入怀中，紧紧地搂着，像是在抱一件失而复得的珍宝。",
+                        options: [
+                            { label: "【绝望】在他怀里僵硬着，如同木偶。", next: "n3_End" }
+                        ]
+                    },
+                    n2_C2: {
+                        text: "“你……”云妄的脸色瞬间变得铁青。他死死盯着你，似乎没想到你会说出这样的话。\n\n“好，好得很。”他咬紧了牙关，一抬手，一道巨大的灵光直直地劈向云谦。\n\n“不要！”你尖叫出声，想扑过去，却被他一把拽住。\n\n灵光在云谦面前一寸处停住，狂风掀飞了云谦的头发，但他依然毫无反应，连眼睛都没眨一下。\n\n“风清雁，你以为我不敢杀他？”云妄转过头，恶狠狠地盯着你，“我只是不想让他死得那么容易。我要让他看着，你是怎么被我弄疯的。”\n\n他一把捏住你的下巴，凶狠地吻了上来。那是一个充斥着惩罚和暴戾的吻，你拼命挣扎，却被他死死制住。",
+                        options: [
+                            { label: "【绝望】放弃挣扎，任由他施暴。", next: "n3_End" }
+                        ]
+                    },
+                    n3_End: {
+                        text: "这场折磨不知道持续了多久。\n\n等云妄终于放过你时，你只觉得浑身脱力，连呼吸都觉得痛。他把你抱在腿上，你无力地靠在他怀里，云谦依然安静地跪在不远处。\n\n云妄低头看着你，用手指一下一下地梳理着你凌乱的头发。\n\n“风清雁，”他的声音忽然变得很轻、很柔和，像是在讲一个睡前故事，“你恨我吗？”\n\n你连说话的力气都没有了，只是静静地流着泪。\n\n“恨吧。”他将下巴轻轻抵在你的发顶，闭上了眼睛，“恨比爱长久。我只要你记住我，至死方休。”\n\n【剧情结束】",
+                        options: [
+                            { label: "【返回】从这无边的噩梦中暂时苏醒。", next: "END" }
+                        ]
+                    }
+                } 
+            },
+                        'lv3': { 
+                name: '疏离·十两银子', 
+                minAff: 0, 
+                maxAff: 29, 
+                nodes: {
+                    start: {
+                        text: "去往小苍山的官道，宽阔却荒凉。\n\n头顶的日头毒辣得厉害，烤得地面的黄土都泛着干渴的白。你走在官道的左侧，江寒走在右侧。中间隔着足足三步的距离，谁也不理谁，像是中间划了一道楚河汉界。\n\n自打你揭穿他“羽幽城大祭司”的虚伪做派，又互相寄了退婚书之后，你们俩就维持着这种诡异的默契。\n\n走了一上午，你的肚子早就咕咕叫了。你从包袱里摸出一块精致的糕点，慢条斯理地咬了一口。余光瞥见右边的江寒，他步伐似乎比早上慢了些，额角渗出细密的汗，脸色也有些苍白。\n\n你嘴角微微一勾，故意放慢了脚步，偏过头去看他。",
+                        options: [
+                            { label: "【嘲讽】“哟，堂堂羽幽城大祭司，怎么走得像个软脚虾一样？”", next: "n1_A" },
+                            { label: "【激将】“你走得这么慢，不会是在等我吧，南蛮蠢驴？”", next: "n1_B" },
+                            { label: "【无视】收回目光，自己吃完糕点，继续加快脚步往前走。", next: "n1_C" }
+                        ]
+                    },
+                    n1_A: {
+                        text: "江寒闻言，脚步一顿，偏过头冷冷地瞥了你一眼。哪怕脸色苍白，他那股子不服输的劲儿也一点没少。\n\n“小爷我是在欣赏南方的风景，不行吗？不像某些北地来的笨猪，没见过世面，走得跟逃荒似的。”他冷笑一声，加快了脚步。\n\n可刚走没两步，他的步伐就明显虚浮了一下。你这才注意到，他一手撑着腰，另一只手无意识地攥紧了袖口，连呼吸都变得有些沉重。\n\n你心里有些狐疑，没有立刻反驳。走到晌午，路边出现了一棵枯死的歪脖子树，刚好洒下一片阴凉。江寒像是抓到了救命稻草，径直走过去，靠着树干滑坐下来。\n\n他背对着你，不知道在捣鼓什么。",
+                        options: [
+                            { label: "【走近】走过去看看他到底在干什么。", next: "n2_A1" },
+                            { label: "【远观】站在不远处，看他能折腾出什么花样。", next: "n2_A2" }
+                        ]
+                    },
+                    n2_A1: {
+                        text: "你轻手轻脚地走近，这才看清。\n\n江寒从怀里摸出了半个干得发硬的馒头，那馒头颜色发暗，看着就不像什么好东西。他皱了皱眉，用力掰下一块，塞进嘴里。\n\n干瘪的馒头似乎噎到了他，他猛地咳了几声，脸颊憋得通红，却还是硬生生咽了下去。\n\n那个在驿站里挑三拣四、满身金贵气的羽幽城大祭司，此刻只能躲在这破树下，啃着不知道放了多久的冷馒头。你忽然觉得有些荒唐。\n\n“谁让你偷看的！”江寒察觉到了你的目光，猛地抬头，像只被踩了尾巴的猫，眼底满是防备和戒备。",
+                        options: [
+                            { label: "【假装路过】“谁看你了？我是在看这树上的鸟。”", next: "n3_Find" },
+                            { label: "【直白戳破】“你就吃这个？你的钱呢？”", next: "n3_Ask" }
+                        ]
+                    },
+                    n2_A2: {
+                        text: "你抱着手臂，站在几步开外的地方，远远地瞧着他。\n\n江寒背对着你，肩膀微微耸动。过了一会儿，他似乎从怀里掏出了什么，紧接着，你听到了一声极其轻微的、被压抑住的干呕。\n\n那声音虽然小，但在空旷的官道上却格外清晰。\n\n你皱了皱眉，终究还是没忍住走了过去。江寒听到脚步声，猛地转头，手忙脚乱地把什么东西塞回了袖子里。\n\n“你过来干什么？”他警惕地看着你，声音有些发哑。",
+                        options: [
+                            { label: "【直接摊牌】“别藏了，我看到了。你是不是没钱了？”", next: "n3_Ask" }
+                        ]
+                    },
+                    n1_B: {
+                        text: "江寒被你这句激将法气笑了：“等你？小爷我恨不得长对翅膀直接飞到小苍山，谁要等你这个北地笨猪。”\n\n他加快了步伐，可没走两步，脚下突然一个踉跄，差点被路面上的一块碎石绊倒。他勉强稳住了身形，却停下脚步，捂着肚子喘息。\n\n你看着他这副死鸭子嘴硬的模样，心里有些纳闷。走到正午，他实在走不动了，找了棵大树底下阴凉处坐下，从袖子里摸出一个又干又瘪的冷馒头。\n\n你这才恍然大悟——感情这家伙是饿了。",
+                        options: [
+                            { label: "【走过去】走到他面前，居高临下地看着他。", next: "n2_B1" }
+                        ]
+                    },
+                    n2_B1: {
+                        text: "你走过去时，江寒正在跟那个馒头较劲。他用力掰着那硬得能砸死狗的面团，满脸写着嫌弃，但肚子却在这时发出一声极其不争气的咕噜声。\n\n气氛瞬间尴尬到了极点。\n\n江寒的脸僵了一下，随即梗着脖子，挑衅地看着你：“看什么看？没见过人吃馒头？”\n\n你看着他那副防备又窘迫的样子，心里忽然冒出一个念头。",
+                        options: [
+                            { label: "【叹息】“你是不是没钱了？”", next: "n3_Ask" },
+                            { label: "【嘲讽】“堂堂大祭司，混到连饭都吃不起，也是千古奇闻了。”", next: "n3_Find" }
+                        ]
+                    },
+                    n1_C: {
+                        text: "你懒得管他，径直往前走，把江寒远远甩在身后。\n\n走出一段距离后，你停下来歇脚。回头望去，江寒正倚在一棵老槐树下，背靠着树干，微微弓着身子。他似乎察觉到了你的视线，把头偏向了另一边。\n\n等了一会儿，他还没跟上来。你心里忽然有种说不出的烦闷。\n\n你提着裙摆走回去，刚走近，就听到他压低声音的咒骂：“该死……”\n\n他手里攥着半个干巴得像石头的冷馒头，正艰难地咀嚼着，眉头拧得死紧。看到你突然折返，他愣住了，连嘴里的东西都忘了嚼。",
+                        options: [
+                            { label: "【无语】“你至于吗？就吃这个？”", next: "n3_Ask" },
+                            { label: "【审视】“江寒，你老实交代，你是不是把钱败光了？”", next: "n3_Find" }
+                        ]
+                    },
+                    n3_Ask: {
+                        text: "被你直白地问起，江寒的眼神闪烁了一下。他迅速把馒头塞回怀里，拍了拍手站起来，拍了拍衣摆上并不存在的灰尘。\n\n“小爷我乐意吃这个，体验民间疾苦，不行吗？”他嘴硬道，目光却有些躲闪，“再说了，我就喜欢吃馒头，又干又硬，有嚼劲。”\n\n说到后面，他的声音越来越小，显然也觉得这谎言太拙劣了。\n\n你看着他这副死要面子活受罪的样子，心里那点火气忽然散了个干净，只剩下一种说不清道不明的情绪。",
+                        options: [
+                            { label: "【拿钱】“十两银子，我买你手里那个馒头。”", next: "n4_Buy" },
+                            { label: "【激将】“给你台阶你就下吧，回头饿死在小苍山门口，我可懒得给你收尸。”", next: "n3_Push" }
+                        ]
+                    },
+                    n3_Find: {
+                        text: "“败光？”江寒像是被踩了尾巴的猫，猛地拔高了音量，“我那是……我那是遭了贼！不，是遇到骗子了！”\n\n他理直气壮地狡辩，但声音里的底气明显不足。你想起他之前说遇到一个女骗子，不仅骗了他的钱，还给他指错了路。\n\n现在回想起来，他当时虽然说得轻巧，但这羽幽城大祭司的身份如果是假的，那他身上的钱恐怕也撑不了多久。\n\n“行吧，遇到骗子的大祭司。”你拉长了声调，“那你打算一路啃冷馒头啃到小苍山？”\n\n江寒咬了咬牙，别过头去不看你。",
+                        options: [
+                            { label: "【强买】“我要这个馒头，十两银子，卖给我。”", next: "n4_Buy" }
+                        ]
+                    },
+                    n3_Push: {
+                        text: "江寒皱起眉头，显然被你的话激到了。\n\n“北地笨猪，你少在这儿高高在上地可怜我。”他冷冷地说着，把那半个馒头往嘴里一塞，像是在向你证明他过得很好。\n\n结果，那干硬的馒头差点把他噎死。他捂着胸口咳得惊天动地，眼泪都快咳出来了。\n\n你看着他，无奈地叹了口气，转身从包袱里摸出几两碎银。",
+                        options: [
+                            { label: "【给钱】“十两银子，我买你手里那个馒头。”", next: "n4_Buy" }
+                        ]
+                    },
+                    n4_Buy: {
+                        text: "你走到他面前，摊开手掌，掌心里躺着十两银子。\n\n“我要这个，十两银子，卖给我。”你指了指他手里那块被他咬了一口的馒头。\n\n江寒愣住了。\n\n他看着你手里的银子，又看了看自己的馒头，眼中满是错愕和困惑：“十两银子，买个馒头？风清雁，你是不是热昏头了？”\n\n“我乐意。”你面无表情地绷着脸，“我今天就想吃个硬馒头。”\n\n江寒没说话，似乎在思量什么。他那双墨色的眼睛死死盯着你，像是要看穿你的伪装。\n\n过了一会儿，他忽然低低地笑了一声，眼底的防备稍微松动了一点。",
+                        options: [
+                            { label: "【开玩笑】“怎么，不敢卖？怕这馒头里下毒了？”", next: "n5_Deal" },
+                            { label: "【不耐烦】“你卖不卖？磨磨唧唧的。”", next: "n5_Deal" }
+                        ]
+                    },
+                    n5_Deal: {
+                        text: "“行啊，大主顾。”江寒把剩下的馒头放在你手里，顺手拿走了那十两银子，“钱货两讫，概不赊账。”\n\n他收了银子，却没有像往常那样立刻和你拉开距离。他站在那儿，把那十两银子在手里掂了掂，神情有一瞬间的复杂。\n\n你低头看着手里那半个带着牙印的冷馒头，忽然觉得有点难以下口。但话已经放出去了，不咬一口实在说不过去。你正准备硬着头皮咬一下，江寒忽然伸手，把馒头从你手里夺了回去。\n\n“算了，这玩意儿太难吃了。”他别过脸，声音听起来有些别扭，“前面有个镇子，当是我请你。”",
+                        options: [
+                            { label: "【调侃】“哟，大祭司转性了？”", next: "n6_Dinner" },
+                            { label: "【傲娇】“谁要你请，本圣女有钱，自己可以买。”", next: "n6_Dinner" }
+                        ]
+                    },
+                    n6_Dinner: {
+                        text: "镇子不大，只有一家简陋的面馆。\n\n江寒挑了个角落的位置，点了两碗热汤面。面上来的时候，热气腾腾的，熏得人眼睛有些发酸。\n\n他先拿起筷子，吃得很慢，但明显没有之前啃冷馒头时那种勉强和干涩了。你看着自己碗里的面，又看了看他。\n\n“喂。”你叫他。\n\n“干嘛？”他抬起头。\n\n“你之前的钱，真的全被骗光了？”你试探着问。\n\n江寒的动作停了一下，随即冷笑：“怎么，心疼我了？”",
+                        options: [
+                            { label: "【否认】“少自作多情了，我是怕你半路饿死，还得本圣女花钱给你埋尸。”", next: "n7_End" },
+                            { label: "【坦诚】“是有点。”你低下头，小声说了一句，继续吃面。", next: "n7_End" }
+                        ]
+                    },
+                    n7_End: {
+                        text: "江寒似乎没料到你会有这样的反应，愣了几秒。随即，他低下头，用筷子拨弄着碗里的面条，没再说话。\n\n吃完面，你们并肩走在镇子的街道上。夕阳西下，把你们的影子拉得很长，依旧是一左一右，但中间那道楚河汉界，似乎比早上窄了那么一点点。\n\n“喂。”江寒忽然开口，语气依旧带着点欠揍的尾音，但落下来却莫名有些轻柔，“谢谢。”\n\n你没回头，嘴角却不自觉地勾了勾。\n\n“十两银子，记得还。”\n\n【剧情结束】",
+                        options: [
+                            { label: "【返回】十两银子的买卖，似乎不算太亏。", next: "END" }
+                        ]
+                    }
+                } 
+            },
+                        'lv4': { 
+                name: '初识·山门互怼', 
+                minAff: 30, 
+                maxAff: 49, 
+                nodes: {
+                    start: {
+                        text: "几日后，你们终于抵达了传说中天下逍遥道第一人创立的小苍山。\n\n看着眼前这……破败不堪的山门，你陷入了沉默。\n\n没有琼楼玉宇，没有八千级玉阶，甚至连护山大阵都看不见。两侧是杂草丛生的松林，石阶修得参差不齐，山门就是一块摇摇欲坠的破木匾，上面的字倒写得飞扬跋扈，但透着一股“随手写了拉倒”的敷衍感。\n\n“这就是你心心念念要拜师的地方？”你转过头，似笑非笑地看着身旁的江寒。\n\n江寒的脸色也不太好看，但他还是梗着脖子，死鸭子嘴硬：“大隐隐于市，你懂什么？这叫……这叫逍遥。”\n\n正当你准备再刺他两句时，山门内忽然探出一个贼头贼脑的少女。\n\n那少女一看到江寒，整个人都僵住了，像只受惊的兔子一样，猛地缩回了半张脸。\n\n你一眼就认出了她。\n\n“柳沐瑶？”你眯起眼睛，咬牙切齿地喊出这个名字。\n\n这不就是那个卖给你们天价符纸，还指错路的“阵道天才”吗？\n\n江寒听到这个名字，原本还算平静的脸瞬间黑了。他大步流星地冲上前，指着那个正准备开溜的少女，怒吼道：“是你！你这个骗子！你给我站住！”",
+                        options: [
+                            { label: "【看戏】抱臂站在一旁，看好戏般地看着江寒发飙。", next: "n1_A" },
+                            { label: "【调解】叹了口气，走上前去，想拉开暴怒的江寒。", next: "n1_B" },
+                            { label: "【拱火】慢悠悠地走上前，和江寒统一战线指责柳沐瑶。", next: "n1_C" }
+                        ]
+                    },
+                    n1_A: {
+                        text: "你站在原地，抱臂看着这场闹剧。\n\n柳沐瑶被江寒那副要吃人的模样吓得连连后退，结结巴巴道：“我……我怎么了嘛！符纸你们不是用了吗？方向……方向我也指了呀！”\n\n“指了？！”江寒气极反笑，声音拔高了八度，“你管南边叫东边？害得小爷我绕了整整三天的冤枉路！你知不知道那三天我是怎么过的？！”\n\n他越说越气，想到自己一路上只能啃干巴巴的冷馒头，还被你这个北地圣女用“十两银子”狠狠羞辱了一番，新仇旧恨顿时一起涌上心头。\n\n就在这时，一个高大挺拔的身影从山门内闪出，一把将柳沐瑶护在了身后。\n\n是那个戴着白纱的归容。\n\n归容神色平静地看着江寒，语气冷淡：“关她什么事？她指错了路，你长了嘴不知道问吗？”",
+                        options: [
+                            { label: "【继续看戏】“哟，护上了。江寒，你这仇怕是报不了了。”", next: "n2_A" }
+                        ]
+                    },
+                    n2_A: {
+                        text: "江寒被归容这句话噎得不轻。\n\n他转头瞪了你一眼，那眼神仿佛在说“你不帮忙就算了还搁这儿说风凉话”。\n\n“小爷我不问？”江寒冷笑道，“行，那算我倒霉。但我买的那些符纸呢？全是坑人的假货！差点没把我埋在阵里！”\n\n柳沐瑶从归容背后探出个脑袋，委屈巴巴地反驳：“那是地灵符……谁让你们俩用错了方法同时催动，阵法当然会反噬啊！”\n\n江寒被你一句调侃，被柳沐瑶一句反驳，整个人气得像个即将爆炸的火药桶，偏偏又发作不出来，憋得脸都红了。",
+                        options: [
+                            { label: "【上前拉走他】“行了行了，别丢人了，赶紧进去吧。”", next: "n3_Enter" }
+                        ]
+                    },
+                    n1_B: {
+                        text: "你叹了口气，走上前去，一把拽住江寒的胳膊。\n\n“行了，光天化日之下欺负一个小姑娘，你大祭司的排面都不要了？”你压低声音劝道。\n\n江寒猛地回头瞪你，咬牙切齿：“风清雁，你哪边的？她骗了我！那可是我全部的家当！”\n\n就在这时，一个高大挺拔的身影从山门内闪出，一把将柳沐瑶护在了身后，正是那个白纱覆面的归容。\n\n归容淡淡地瞥了江寒一眼：“有事？”\n\n江寒冷笑，正欲发作，你用力捏了捏他的胳膊，示意他冷静。他顿了顿，深吸了一口气，硬生生把火气往下压了压。",
+                        options: [
+                            { label: "【趁热打铁】对归容说：“这位是来拜师的江寒，可能中间有点误会。”", next: "n2_B" }
+                        ]
+                    },
+                    n2_B: {
+                        text: "归容看了看你，又看了看江寒，语气听不出什么情绪：“拜师？师父还没回来，你们先在门外等着吧。”\n\n说完，他拉着柳沐瑶转身就走。\n\n江寒看着他们的背影，气得直磨牙。他一把甩开你的手，语气不善：“风清雁，你少管闲事。你拉我干嘛？我还没骂够呢！”\n\n“你骂够了能怎样？能把你的钱要回来？”你白了他一眼，“别像个市井泼妇一样，丢不丢人。”\n\n江寒被你噎住，半天说不出话来，只能恨恨地踢了踢脚下的石子。",
+                        options: [
+                            { label: "【哄他】“行了，回头我帮你讨回公道，先进去吧。”", next: "n3_Enter" }
+                        ]
+                    },
+                    n1_C: {
+                        text: "你慢悠悠地走上前，和江寒并肩站在一起。\n\n“柳沐瑶，你可真行啊。”你抱着手臂，冷笑连连，“卖假符，指错路，现在还敢躲？你信不信本圣女把你这破山门给拆了？”\n\n柳沐瑶被你们两人这同仇敌忾的气势吓到了，眼眶都红了。\n\n就在这时，一个高大挺拔的身影从山门内闪出，一把将柳沐瑶护在了身后。\n\n是归容。\n\n归容冷冷地看着你们俩，目光落在江寒身上：“关她什么事？她指错了路，你长了嘴不知道问吗？”\n\n江寒见你站到了他这边，底气顿时足了，他冷笑一声，往前迈了半步，刚想怼回去，却被你暗中拉住了袖角。\n\n他顿了一下，偏头看你。",
+                        options: [
+                            { label: "【眼神暗示】朝他使了个眼色，示意他别冲动。", next: "n2_C" }
+                        ]
+                    },
+                    n2_C: {
+                        text: "江寒看懂了你眼神里的暗示，虽然心里不情愿，但还是硬生生把到了嘴边的脏话咽了回去。\n\n他冷哼了一声，没再说话。\n\n你转头看着归容，皮笑肉不笑：“误会一场，我们是来拜师的。不过你这小师妹，这做生意的信誉，确实有待提高。”\n\n归容没再多说什么，只是带着柳沐瑶退到了山门一侧。\n\n江寒凑到你耳边，压低声音，咬牙切齿但带着点傲娇：“你刚才拉我干嘛？我本来能骂赢的。”",
+                        options: [
+                            { label: "【怼他】“怎么，我还得给你递个茶润润嗓子再骂？”", next: "n3_Enter" }
+                        ]
+                    },
+                    n3_Enter: {
+                        text: "就在你们准备跨进山门时，异变突生。\n\n头顶上那块摇摇欲坠的破木匾，不知是不是承受不住上面的字迹，发出一声令人牙酸的“嘎吱”声，竟然直直地朝着柳沐瑶的脑门砸了下来！\n\n“小心！”归容一把将柳沐瑶护在怀里，闪身避开。\n\n而那牌匾好巧不巧，竟直直地朝着你的方向砸了下来。\n\n劲风扑面，你甚至能看清上面“逍遥”两个字上剥落的漆皮。\n\n一切都发生在电光火石之间。",
+                        options: [
+                            { label: "【拉住江寒】下意识地伸手去抓旁边的江寒。", next: "n4_A" },
+                            { label: "【推他一把】一把推开江寒，自己准备侧身躲开。", next: "n4_B" },
+                            { label: "【拔剑】拔剑劈开那块烂木头。", next: "n4_C" }
+                        ]
+                    },
+                    n4_A: {
+                        text: "你没有多想，下意识地抓住了江寒的手臂。\n\n江寒被你猛地一拽，重心不稳，整个人朝你扑了过来。他反应极快，在牌匾落下的瞬间，一把将你按进了怀里，用自己的后背硬生生挡住了那块砸下来的木头。\n\n“砰”的一声闷响，木屑纷飞。\n\n江寒闷哼了一声，身体微微前倾，几乎把你整个人都压在了他的胸膛上。你能清晰地感受到他剧烈的心跳，闻到他身上那股淡淡的、混杂着青草气息的味道。\n\n“你没事吧？”他低头看你，眉头紧皱，语气里带着几分掩饰不住的焦急。",
+                        options: [
+                            { label: "【心跳】“我……我没事。你没被砸伤吧？”你看着他，有些结巴。", next: "n5_Chaos" }
+                        ]
+                    },
+                    n4_B: {
+                        text: "你反应极快，一把推向江寒的胸口，想把他推开自己躲。\n\n“你干嘛……”江寒没防备，被你推得踉跄了一步，回头瞪你。\n\n可下一秒，他就看到牌匾砸了下来。他想都没想，直接扑了过来，用自己的后背帮你扛了一下，同时拽着你的手，把你拉出了危险区。\n\n牌匾砸在地上，扬起一片灰尘。\n\n江寒半跪在地上，脸色有点发白，却死死抓着你的手腕没松。\n\n“你这北地笨猪，躲都不会躲吗？”他疼得直吸气，却还不忘骂你，“推我干嘛？你想被砸成肉泥啊？”",
+                        options: [
+                            { label: "【嘴硬】“谁让你扑过来了？我自己能躲！”", next: "n5_Chaos" }
+                        ]
+                    },
+                    n4_C: {
+                        text: "你冷哼一声，身形微动，灵力凝于指尖，正准备拔剑把那块破牌子劈成两半。\n\n就在这时，一道玄色的身影闪过。\n\n江寒一把揽住你的腰，硬生生把你往后带了两步。\n\n“哐当”一声巨响，牌匾砸在了你刚才站的位置，木屑和灰尘溅了你们一身。\n\n你被江寒半抱在怀里，那姿势要多暧昧有多暧昧。你有些恼怒地抬头看他，却见他正低头看着你，眼神里满是毫不掩饰的怒火。\n\n“你疯了？那可是实木的！你以为你多大的本事？”他恶狠狠地冲你吼了一句。",
+                        options: [
+                            { label: "【不服】“你吼什么？我不是还没来得及拔剑吗！”", next: "n5_Chaos" }
+                        ]
+                    },
+                    n5_Chaos: {
+                        text: "还没等你们俩从这场小混乱里缓过神来，山门内突然传来一声极其清越的长啸。\n\n“长风借我三分酒——”\n\n一道白衣身影从山巅飞跃而下，手里还拎着个酒葫芦，衣袂翻飞，落姿极其潇洒。\n\n但可惜，帅不过三秒。\n\n他落地的时候，似乎是踩到了一块青苔，脚下一滑，差点劈了个叉。\n\n“咳咳……”那人故作镇定地站直了身子，捋了捋被风吹乱的头发，目光扫过众人，最终落在了你的身上。\n\n云谦脸上的表情瞬间从一代宗师切换到了极度的谄媚，他凑上前几步，笑嘻嘻地开口：“雁雁，爹爹方才潇不潇洒？”\n\n你还没来得及说话，一只彩羽鹦鹉便扑棱着翅膀飞了过来，嘴里还扯着嗓子大喊：“泼皮无赖！泼皮无赖！”\n\n场面瞬间乱作一团。\n\n江寒站在你身旁，原本还在为你刚才“不爱惜生命”的举动生气，看到这一幕，也忍不住嘴角抽搐了一下。",
+                        options: [
+                            { label: "【怼云谦】“一身酒气，不是答应过我不许喝酒吗？”", next: "n6_A" },
+                            { label: "【拉江寒】凑近江寒，小声吐槽：“这就是你说的天下第一人？”", next: "n6_B" },
+                            { label: "【退后】往后退一步，假装不认识他。", next: "n6_C" }
+                        ]
+                    },
+                    n6_A: {
+                        text: "云谦听到你的话，立刻举起双手，一脸无辜：“我可没喝啊，雁雁。方才啊，我只是借这酒，舞一段沧水飞花，才沾了些酒气。答应雁雁的事，爹爹自然要做到。”\n\n他说着，趁你不备，伸手揉了一把你的头发，转身就想溜：“好嘞，既然雁雁嫌我，我这就滚了！”\n\n江寒在一旁看着你们这副父慈女孝（或者父女互怼）的画面，不知为何，眼神暗了暗。\n\n他看着云谦溜走的背影，忽然凑到你耳边，语气酸酸的：“你跟他关系倒挺好。”\n\n你挑了挑眉，转头看他。",
+                        options: [
+                            { label: "【挑衅】“怎么，大祭司吃醋了？”", next: "n7_End" }
+                        ]
+                    },
+                    n6_B: {
+                        text: "你悄悄拉了拉江寒的袖子，凑近他压低声音：“这就是你想拜的师父？看起来，除了会跑路，好像也不怎么样嘛。”\n\n江寒被你这一句吐槽弄得差点破防。\n\n他嘴角抽了抽，咬着牙，小声回怼：“你懂什么，这叫……不拘小节。大智若愚。”\n\n“哦，大智若愚。”你拉长了声调，“那你刚才被匾额砸到的那一下，也是大智若愚？”\n\n江寒被你噎得翻了个白眼，但看着你这副窃笑的模样，眼底却闪过一丝他自己都没察觉到的笑意。\n\n“你少得意。”他撇了撇嘴。",
+                        options: [
+                            { label: "【顺势】“行了，走吧，进去看看这破山门里还有什么幺蛾子。”", next: "n7_End" }
+                        ]
+                    },
+                    n6_C: {
+                        text: "你往后退了一步，面不改色地装作不认识他。\n\n云谦见状，也不恼，只是嘿嘿一笑，对着身后的柳沐瑶和归容喊道：“给他们安排一下住处，这两位以后就是咱们小苍山的人了。”\n\n说完，他哼着小调，一晃一晃地走进了山里。\n\n江寒站在你旁边，目光追随着云谦的背影，有些复杂。\n\n他忽然偏过头，低声问你：“喂，风清雁。你为了查清楚他的事，才来这里的吧？”\n\n你没有说话，只是看着远处的云谦。\n\n“走吧。”江寒忽然拉了一下你的袖子，语气恢复了那种欠欠的调子，“发什么呆，赶紧进去，小爷我累死了，要找个好房间。”",
+                        options: [
+                            { label: "【跟上】任由他拉着你的袖子，往山里走去。", next: "n7_End" }
+                        ]
+                    },
+                    n7_End: {
+                        text: "你们跟着归容和柳沐瑶，沿着长满杂草的石阶走进了小苍山。\n\n江寒走在你前面，步子迈得很大，但那根袖子还在你的手里攥着。\n\n阳光透过斑驳的树影洒在你们身上，他忽然回头看了你一眼，没头没脑地说了一句：“喂，刚才那牌匾掉下来的时候，你推我干嘛？”\n\n“顺手。”你脸不红心不跳地说。\n\n他深深地看了你一眼，没有再追问，只是转过头，继续往前走。\n\n但他拉着你袖子的手，却没松开。\n\n【剧情结束】",
+                        options: [
+                            { label: "【返回】山门风波暂平，小苍山的故事才刚刚开始。", next: "END" }
+                        ]
+                    }
+                } 
+            },
+                        'lv5': { 
+                name: '熟稔·问心阵', 
+                minAff: 50, 
+                maxAff: 69, 
+                nodes: {
+                    start: {
+                        text: "无上宗以仙法造出的大湖畔，六十座浮岛悬浮在半空，四周云雾缭绕，仿若仙境。\n\n阵道大典的规矩是两人一组，破阵取宝。你站在湖畔，看着手里那张被柳沐瑶拍着胸脯保证“绝对好用”的地灵符，又看了一眼身旁那个满脸不情愿的江寒。\n\n“事先说好，北地笨猪。”江寒抱着手臂，斜睨着你，“上了岛，你走你的阳关道，我过我的独木桥，谁也别碍着谁。”\n\n“这句话，小爷原封不动地还给你。”你冷笑了一声。\n\n伴随着执事弟子一声“入阵”，你们俩同时催动灵力，跃上了那座号称为“地灵阵”的浮岛。\n\n刚一落地，你便察觉到了不对劲。\n\n这岛上的泥土不仅是湿的，而且软得异常。你刚想蹲下身去沟通地脉，江寒却在另一头不知踩到了什么机关。\n\n“咕噜……”\n\n一声沉闷的异响从脚底传来，紧接着，整座浮岛的地面像是一张被猛然扯动的毯子，剧烈地翻滚起来。",
+                        options: [
+                            { label: "【破口大骂】“江寒！你是不是有病，乱踩什么？！”", next: "n1_A" },
+                            { label: "【同时发力】“别废话了，赶紧用柳沐瑶的地灵符！”", next: "n1_B" },
+                            { label: "【暗中观察】先不惊动他，自己悄悄催动莲心珠试探地脉。", next: "n1_C" }
+                        ]
+                    },
+                    n1_A: {
+                        text: "“关我什么事？！”江寒一边稳住身形，一边毫不示弱地吼了回来，“明明是你这北地笨猪八字不合，连带着小爷我也倒霉！”\n\n话还没说完，脚下的泥土彻底变成了粘稠的沼泽，像一张贪婪的大嘴，瞬间吞没了你们的小腿。\n\n你急了，手忙脚乱地掏出那张地灵符，用灵力点燃。江寒见你动作，也下意识地掏出了同样一张符纸点燃。\n\n两道地灵符的光芒同时撞进阵眼，不仅没有化解阵法，反而像是一瓢冷水浇进了滚油里。\n\n“轰”的一声，泥沼彻底暴走了。\n\n“啊啊啊啊——”\n\n你们俩甚至来不及挣扎，就被那翻滚的泥浪直接卷到了腰部。泥水呛进你的口鼻，你拼命挥舞着双臂，却只能看着江寒那张同样沾满泥巴、写满绝望的脸离你越来越近。",
+                        options: [
+                            { label: "【抓紧他】在沉下去之前，死死抓住江寒的衣领。", next: "n2_Sink" },
+                            { label: "【放弃挣扎】泥水灌入鼻腔，你绝望地闭上了眼睛。", next: "n2_Sink" }
+                        ]
+                    },
+                    n1_B: {
+                        text: "“废话，小爷我知道！”江寒的反应极快，立刻从袖中抽出那张符纸催动。\n\n你与他配合着，两股灵力同时注入地脉。然而，这张地灵符不仅没起到安抚作用，反而像是给阵法打了一剂猛药。\n\n地下传来沉闷的轰鸣，泥土瞬间液化，将你们两人连拉带拽地往里吞。\n\n“柳沐瑶——！你个骗子——！”江寒仰天长啸，这声音只发出一半，就被泥水硬生生堵回了喉咙里。\n\n你被泥沼拉扯着往下坠，四周一片漆黑，连呼吸都变得极其困难。你本能地想要去抓什么东西，却在黑暗中摸到了江寒的手臂。还没等你抓紧，你就彻底失去了知觉。",
+                        options: [
+                            { label: "【陷入黑暗】在阵法中失去意识。", next: "n2_Sink" }
+                        ]
+                    },
+                    n1_C: {
+                        text: "你没有声张，而是借着蹲下的姿势，悄悄将手按在了泥土上。\n\n一丝莲心珠的因果之力渗入地下，你想瞒着江寒，直接用圣女的能力强行压制这个阵眼。\n\n可是，你低估了无上宗的阵法，也高估了自己现在的状态。莲心珠的灵力刚一触碰到阵纹，就像是触碰到了什么禁忌，反噬之力如潮水般涌来。\n\n你浑身一颤，猛地喷出一口血，整个人不受控制地向后倒去。\n\n“风清雁！”\n\n远处的江寒看到了这一幕，脸色骤变，猛地朝你扑了过来。此时，泥沼已经化作一道巨大的漩涡，将你们两人彻底吞噬。",
+                        options: [
+                            { label: "【被他护住】在失去意识前，感觉到自己被一个温热的怀抱紧紧护住。", next: "n2_Sink" }
+                        ]
+                    },
+                    n2_Sink: {
+                        text: "当你再次睁开眼时，周围没有无上宗的大湖，没有泥沼，也没有江寒。\n\n这里是一片无边无际的黑色。没有光，没有声音，只有你一个人孤零零地站在虚空中。\n\n“这是……哪里？”\n\n你刚想开口，却发现喉咙里发不出任何声音。紧接着，一阵窸窸窣窣的细响从四周传来。\n\n你低下头，瞳孔骤然紧缩。\n\n无数条半透明的丝线，从你的心口涌出，像无数条吐着信子的毒蛇，缓慢而阴冷地朝你游走过来。\n\n这些丝线缠上你的手腕，绕上你的脚踝，顺着衣襟攀上你的脖颈。\n\n你知道这是什么。\n\n这是因果线。是莲心珠的代价。\n\n随着丝线的收紧，黑暗中浮现出一双双熟悉的眼睛。\n\n小侯、小福，还有那些在祭坛上被莲心珠燃成灰烬的长老、百姓。\n\n他们全身焦黑，眼眶里流着血泪，用最怨毒的声音在你耳边嘶吼。\n\n“圣女万福……为万民之福……”\n\n“你为什么不去死！为什么死的是我们！”\n\n那些丝线勒进你的皮肉，像是要硬生生把你的骨头绞碎。你痛得无法呼吸，想要挣扎，却被死死钉在原地。\n\n这就是你的“惧”。你逃不开，也躲不掉。",
+                        options: [
+                            { label: "【拼命挣扎】“不是的！我不想的！放开我！”", next: "n3_Fear" },
+                            { label: "【绝望认命】“对……是我欠你们的。就这样把我拖下去吧……”", next: "n3_Fear" },
+                            { label: "【咬牙死撑】死死咬住嘴唇不让自己发出一声惨叫，试图用灵力震碎这些线。", next: "n3_Fear" }
+                        ]
+                    },
+                    n3_Fear: {
+                        text: "就在你以为自己真的要死在这里，被这些因果线勒断脖子的时候。\n\n“嗒。嗒。嗒。”\n\n一阵不急不缓的脚步声，突兀地在黑暗中响起。\n\n像有人踩着一地虚无，径直朝你走过来。\n\n四周那些疯狂涌动的因果线，在听到这个脚步声时，居然微微瑟缩了一下。\n\n你艰难地抬起头，看到黑暗被撕裂了一道口子。\n\n一个人影从裂缝中走了出来。\n\n是江寒。\n\n他还是那副模样，只是脸色冷得厉害，眼底像压着一场未曾熄灭的火。\n\n那些刚才还张牙舞爪的因果线，在触碰到他衣角边缘时，像是碰到了什么极其恐怖的东西，发出细微尖利的嗡鸣声，纷纷退散开来，连半分都不敢沾上他。\n\n他走到你面前，居高临下地看着满身狼狈、被勒得快要窒息的他。\n\n你在他的眼中，看到了无数复杂的神情交错。",
+                        options: [
+                            { label: "【求救】张了张嘴，无声地喊了一句“江寒”。", next: "n4_Rescue" },
+                            { label: "【警惕】他刚才的眼神里，分明有一丝杀意。你到底想干什么？", next: "n4_Rescue" }
+                        ]
+                    },
+                    n4_Rescue: {
+                        text: "“风清雁，我该拿你怎么办才好。”\n\n他低低地叹了一句。那声音里，带着点无奈，带着点焦躁，却也有一丝连他自己都没察觉到的克制与心疼。\n\n他蹲下身，没有丝毫犹豫，直接伸手扣住了你的手腕。\n\n他的手很稳，也很烫。\n\n那些刚才还死死缠着你、宛如附骨之疽的因果线，在碰触到他手背的瞬间，竟像被烈火烫到了一般，猛地缩开，一层层退散下去。\n\n“起来。”他用力一拽，将你半抱半扯地拉了起来。\n\n你浑身发软，几乎站不稳，只能踉跄着扑进他怀里。你闻到他身上那股极其好闻的冷冽气息，原本被寒冷和恐惧浸透的血液，似乎在这一刻重新温热了起来。\n\n他没有推开你，只是带着你往前走了几步。\n\n“破！”\n\n他一声低喝，周围的黑暗瞬间如碎镜般片片崩塌。",
+                        options: [
+                            { label: "【瘫倒】无力地跌坐在田埂上。", next: "n5_After" }
+                        ]
+                    },
+                    n5_After: {
+                        text: "你大口大口地喘着粗气，冷汗混着泥水糊在脸上，狼狈到了极点。\n\n但你已经顾不得这些了。你猛地抬起头，死死盯着眼前的江寒。\n\n他正站在不远处，拍打着身上的泥块。\n\n“为什么……”你声音嘶哑，眼神锐利，“为什么我的莲心珠，触碰不到你？”\n\n江寒动作一顿，回头看向你，装傻道：“你在说什么？”\n\n“你的身上……没有因果。”你看着他，像是要看穿他的灵魂，“世人皆有因果，为什么你没有？”\n\n江寒沉默了片刻，忽然笑了，笑得有些轻狂，又有些无奈：“大概是因为，小爷我是个被天道遗忘的人吧。”",
+                        options: [
+                            { label: "【不信】“你在说谎。你到底是谁？”", next: "n6_Promise" },
+                            { label: "【试探】你强撑着站起身，再次将莲心珠的赐福之力打向他。", next: "n6_Promise" },
+                            { label: "【沉默】他不想说，你也不强求，只是静静地看着他。", next: "n6_Promise" }
+                        ]
+                    },
+                    n6_Promise: {
+                        text: "不管你是试探，还是沉默，江寒都没有再躲。\n\n他就那么坦坦荡荡地站在那儿，任由你打量。\n\n“害怕了？”他忽然问。\n\n“我为什么要害怕？”你咬牙。\n\n“因为我是个没有因果的怪物啊。”他自嘲地笑了笑，“你身上的那个东西，会吃掉所有靠近你的人。但是没关系，它吃不到我。”\n\n他走到你面前，弯下腰，视线与你齐平。\n\n那双漆黑的眸子里，没有了平时的讥讽和戏谑，只剩下一种极其认真的神色。\n\n“风清雁，害怕是没有用的。”他伸手，用指背轻轻蹭掉你脸上的泥巴，“害你的是这颗珠子，是那群长老。该怕的、该逃的不是你，而是他们。”\n\n他站起身，拍了拍衣服上的灰：“小爷今日心情好，便许你一个承诺。”\n\n“若你还是不敢做，没关系。你不能做的事，我替你做。”\n\n他微微低下头，目光深深地看着你，声音极其清晰：“你看着我，就算你做了一半。”",
+                        options: [
+                            { label: "【伪装】看着他认真的模样，你心中微动，面上却故作轻松：“好啊。”", next: "n7_End" },
+                            { label: "【动摇】“你凭什么觉得，我一定会信你？”", next: "n7_End" },
+                            { label: "【动心】你看着他，忽然笑了，那是你第一次真心实意地对他笑：“好，我信你。”", next: "n7_End" }
+                        ]
+                    },
+                    n7_End: {
+                        text: "风从湖面上吹来，吹散了你们身上沾染的泥水，也吹散了刚才那种压抑到极点的气氛。\n\n江寒听到你的回答，似乎是松了一口气，又恢复了那副欠揍的模样。\n\n“行了，别傻站着了。阵眼早就被我们毁了，再不出去，这岛就要沉了。”\n\n他转身朝湖边走去，走了两步，又忽然停下，偏过头看你：“还不跟上？等着小爷背你吗？”\n\n你看着他那副口是心非的样子，忍不住在心里轻轻笑了一声。\n\n就在你们快要走到岸边时，湖面上忽然传来一阵舟橹轻响。\n\n无上宗的两名执事弟子划着小船靠岸，远远地看着你们俩。\n\n其中一个人看到你们浑身是泥的模样，肩膀猛地抖了一下，立刻抬袖装咳。另一个人则硬生生绷住脸，对你们作了个揖：“二位道友……可还安好？”\n\n【剧情结束】",
+                        options: [
+                            { label: "【返回】问心阵内九死一生，却似乎换来了一个不一样的承诺。", next: "END" }
+                        ]
+                    }
+                } 
+            },
+                'lv6': { 
+                name: '心动·榕乡夜色', 
+                minAff: 70, 
+                maxAff: 79, 
+                nodes: {
+                    start: {
+                        text: "榕乡城的夜，吵得人头疼。\n\n东南的风裹着榕树根须上的湿气，吹过来时，也裹着满街甜酒、香灰、糯米饭和烤鱼的味道。红红金金的灯笼挂得太多，一串一串，把半边天都映得发亮。\n\n你站在人群里，只觉得烦，太吵了。那些笑声、鼓点、祈愿时低低的念词，和满街乱晃的灯影拧在一起，一股脑往人眼里、耳里、心口里灌。\n\n你偏过头，恰好看见江寒站在你身侧，脸比平日还臭。他今日穿得人模狗样，衣摆上压着暗纹，发带也束得齐整，若单看这一身，倒真像南方雾林里养出来的什么尊贵祭司。可那张脸上却写得很明白——没意思。\n\n你心里那股无名火忽然就有了去处，故意拖长了声音刺他：“羽幽城毗邻榕乡城，都在南边，你一个羽幽城的大祭司不是该最懂此处风土人情吗？怎么如今站在自家地盘上，还一副要死不活的样子。”\n\n江寒闻言，冷笑了一声，偏过头来看你，那眼神里带着几分漫不经心的嘲弄：“你们北地圣女不是最喜欢这种祈福拜神、装神弄鬼的玩意儿？怎么还摆出一副满大街每个人都欠你十两银子的死人脸。”",
+                        options: [
+                            { label: "【回怼】“你少给我扣帽子。我那是救人，跟他们能一样吗？”", next: "n1_A" },
+                            { label: "【激将】“你不会是没钱，怕在这夜市里丢人吧？”", next: "n1_B" },
+                            { label: "【无视】翻个白眼，根本不接他的话，径直往前走。", next: "n1_C" }
+                        ]
+                    },
+                    n1_A: {
+                        text: "“哦。”江寒慢吞吞地应了一声，眉梢微挑，“原来你们跳大神的还有高低贵贱之分。”\n\n你气得当场抬手欲打。江寒躲得快，侧身避过去，还很讨嫌地补了一句：“大庭广众，注意形象。”\n\n你瞪了他一眼，转身往前走。江寒顿了一下，到底还是跟了上来，和你并肩挤在人群里。走了一段路，你们停在了一个卖糖葫芦的摊子前。\n\n红彤彤的山楂裹着糖衣，在灯下泛着诱人的光。你停下脚步，买了两串，自己咬了一口，随后将另一串递向他。\n\n江寒盯着你手里的糖葫芦，喉结滚了一下，却别过脸：“甜腻腻的，我不吃。”",
+                        options: [
+                            { label: "【硬塞】直接把手里的糖葫芦怼到他嘴边。", next: "n2_A1" },
+                            { label: "【激将】“是不是大男人不敢吃甜的啊？”", next: "n2_A2" }
+                        ]
+                    },
+                    n1_B: {
+                        text: "江寒脸色僵了一瞬，随即冷笑：“小爷我会没钱？”\n\n话虽说得硬气，可你瞥见他下意识捏了捏腰间的钱袋，那动作怎么看怎么心虚。\n\n你心里一阵好笑，面上却端着一副同情的模样：“也是，堂堂羽幽城祭司，若是连串糖葫芦都买不起，传出去确实不好听。”\n\n“风清雁，你少在这儿阴阳怪气。”江寒咬牙切齿。\n\n“走吧。”你心情大好，顺手拉了他一把，“本圣女今日心情好，赏你口吃的。”\n\n你把他拉到糖葫芦摊前，刚想掏钱，却发现江寒已经抢先一步，将几枚铜板拍在了摊子上，冷着脸拿了一串递给你。",
+                        options: [
+                            { label: "【惊讶】“你不是没钱了吗？”", next: "n2_B1" },
+                            { label: "【调侃】“哟，大祭司还是要面子的嘛。”", next: "n2_B2" }
+                        ]
+                    },
+                    n1_C: {
+                        text: "你懒得理他，转身便走。\n\n人群拥挤，你故意加快了脚步，七拐八拐地往人多的地方钻。可走着走着，你便发觉，身后那个烦人的脚步声一直不远不近地缀着。\n\n你猛地一回头，差点撞进他怀里。\n\n江寒没料到你突然停步，脚下一顿，两人间的距离近得能看清彼此睫毛上的细碎灯影。他愣了一下，随即故作镇定地往后退了半步，嘴硬道：“干嘛？路又不是你家开的。”\n\n你冷哼一声，目光越过他，落在了街边的一个小酒肆上。",
+                        options: [
+                            { label: "【提议】“这破地方太吵了，走，找个地方喝酒去。”", next: "n2_C1" },
+                            { label: "【无视】“别跟着我。”转头继续走。", next: "n2_C2" }
+                        ]
+                    },
+                    n2_A1: {
+                        text: "你不由分说，直接把糖葫芦怼到了他唇边。\n\n江寒整个人都僵住了，他看着你，眼底闪过一丝错愕，随后像是认命了一般，张嘴咬下了一颗。\n\n“太酸了。”他皱着眉抱怨，嘴里却吃得飞快。\n\n你忍不住笑出声：“江寒，你真的很像那种被顺了毛的猫。”\n\n他轻哼了一声，没反驳。你们并肩走在街上，他忽然开口：“这城里有没有高一点的地方？太吵了，我想透透气。”\n\n你环顾四周，指了指远处的城墙：“走，上城墙。”",
+                        options: [
+                            { label: "【上城墙】往城墙的方向走去。", next: "n3_Wall" }
+                        ]
+                    },
+                    n2_A2: {
+                        text: "“谁不敢了？”江寒果然受激，一把夺过你手里的糖葫芦，狠狠咬了一口，“小爷我什么没吃过。”\n\n“是是是，大祭司最能吃了。”你敷衍着，拉着他往前走。\n\n吃完糖葫芦，你们继续在夜市里闲逛。四周的喧闹声越来越响，江寒的眉头也越皱越紧。\n\n“走吧。”他忽然拉住了你的手腕，把你往人群外带，“这地儿待久了，脑仁疼。”\n\n你被他拉着，一路来到了城门下的台阶处。",
+                        options: [
+                            { label: "【跟上】任由他拉着你往城墙上走。", next: "n3_Wall" }
+                        ]
+                    },
+                    n2_B1: {
+                        text: "“怎么，以为我堂堂羽幽城祭司，真会饿死街头？”江寒把糖葫芦塞到你手里，自顾自地往前走。\n\n你拿着糖葫芦追上去：“那你之前还啃馒头？”\n\n“小爷乐意体验民间疾苦，你管得着吗？”他头也不回。\n\n你撇了撇嘴，咬了一口糖葫芦，甜味在舌尖化开。你们一路走到了护城河边，人少了许多。你正想找个地方坐下，却见他忽然停住脚步，指着不远处的城墙：“那上面视野不错，去坐坐？”",
+                        options: [
+                            { label: "【答应】“好啊，正好本圣女走累了。”", next: "n3_Wall" }
+                        ]
+                    },
+                    n2_B2: {
+                        text: "“闭嘴吧你。”江寒瞪了你一眼，气呼呼地往前走。\n\n你笑着跟上他。夜色渐深，卖糖葫芦的摊子被你们抛在身后，你注意到江寒虽然走得快，但脚步却刻意放慢了，似乎是在等你。\n\n“喂。”你喊他。\n\n“干嘛？”他没好气地回头。\n\n“找个地方喝酒吧。”你指了指远处的城墙，“那里应该没什么人。”",
+                        options: [
+                            { label: "【提议】往城墙方向走。", next: "n3_Wall" }
+                        ]
+                    },
+                    n2_C1: {
+                        text: "江寒闻言，挑了挑眉：“喝酒？你一个圣女，能喝酒？”\n\n“废话，本圣女什么不会。”你率先往酒肆走去，买了两壶最烈的酒，出来塞给他一壶，“走，找个清净的地方。”\n\n你们走了一段路，来到了一处高高的城墙下。江寒仰头看了看，忽然伸手揽住你的腰，足尖一点，带着你跃上了城头。\n\n夜风呼啸，你惊魂未定地瞪着他，他却已经找了个地方大喇喇地坐下，晃了晃手里的酒壶。",
+                        options: [
+                            { label: "【坐下】在他身边坐下。", next: "n3_Wall" }
+                        ]
+                    },
+                    n2_C2: {
+                        text: "“别跟着我。”你丢下这句话，头也不回地走了。\n\n你本以为他会识趣离开，可走了几条街，那抹身影依然在不远处。你忽然觉得有些好笑，也觉得自己这气生得有些莫名其妙。\n\n你停下脚步，叹了口气，转过头看他。\n\n江寒也停了下来，抱着手臂看你，一副“我看你能走到哪”的模样。\n\n“那上面没人，去坐坐吧。”你指了指前方的城墙，语气软了下来。",
+                        options: [
+                            { label: "【上城墙】率先迈开步子。", next: "n3_Wall" }
+                        ]
+                    },
+                    n3_Wall: {
+                        text: "你们翻上了城墙。\n\n高处风大，把街市上的喧闹声隔得很远。你站在墙头，看着底下星星点点的灯火，长舒了一口气。\n\n一转头，却发现江寒不知从哪儿摸出了一只酒壶。\n\n“哪来的？”你瞪大了眼。\n\n“偷的。”他理直气壮地晃了晃酒壶，“怎么，圣女大人要抓贼吗？”\n\n酒香顺着风飘过来，勾得你喉咙有些发干。你走过去，在他身边坐下。",
+                        options: [
+                            { label: "【硬抢】“给我喝一口。”直接扑过去抢。", next: "n4_A" },
+                            { label: "【激将】“就你那点酒量，别喝两口就醉死过去。”", next: "n4_B" },
+                            { label: "【凝视】“你从哪里偷的？这酒闻着很烈。”安静地坐着。", next: "n4_C" }
+                        ]
+                    },
+                    n4_A: {
+                        text: "你伸手便抢，江寒偏头一躲。你急了，整个人扑过去。\n\n墙头本就不宽，你这一压，江寒的肩背一下撞上砖石，酒壶也跟着晃出一点酒香。\n\n你本来只想抢酒，谁知扑得太近，一抬眼，正好撞进他那双黑得发深的眼睛里。他的呼吸乱了，热气扫过你的脸颊。\n\n“风清雁，”他声音微哑，带着点咬牙切齿的意味，“你这架势，不知道的还以为你要轻薄我。”\n\n你看到了他耳根泛起的红，心口猛地一跳，立刻坐起身：“我轻薄你？你想得美！”\n\n他轻咳了一声，到底还是把酒壶递给了你。你接过来仰头喝了一口，酒极烈，顺着喉咙一路烧下去，你被呛得咳了一声。\n\n“就这点酒量？”他笑。你气得把酒壶砸回他怀里。",
+                        options: [
+                            { label: "【不服】“比比就比比！”", next: "n5_Drink" }
+                        ]
+                    },
+                    n4_B: {
+                        text: "“谁酒量差了？”江寒果然经不起激，立刻扬起头灌了一大口。\n\n“咳咳……”他喝得太急，也被呛了一下，眼眶微红。\n\n你在一旁笑得前仰后合：“就这？就这？”\n\n他恼羞成怒，把酒壶塞到你手里：“你行你上。”\n\n你当仁不让，接过来也喝了一大口。酒入愁肠，化作一团火。你们谁也不肯认输，就这么一口接一口地在城墙顶上喝了起来。\n\n到后来，连谁喝了多少都分不清了，只剩下夜风在耳边吹。",
+                        options: [
+                            { label: "【认输】“不喝了不喝了，我头晕。”", next: "n5_Drink" }
+                        ]
+                    },
+                    n4_C: {
+                        text: "“从一个贪财的富商那里顺来的。”江寒拔开塞子，自己先喝了一口，然后把酒壶搁在两人中间的砖石上。\n\n“这地儿太吵，太挤。”他看着远处的灯火，语气里透着一丝少见的迷茫，“我总觉得……哪里都一样。城里是墙，山里是墙，连这满大街的人，也是墙。待久了，就烦。”\n\n你没有说话，只是静静地听着。\n\n“好想出去。”他低声道。\n\n你看着他被夜风吹乱的鬓发，忽然觉得，他眼底那点空落落的东西，像极了你在莲心城的高台上，俯视那些狂热信徒时的感受。",
+                        options: [
+                            { label: "【冲动】踢了踢他的腿：“那我们现在就走！”", next: "n5_Leave" },
+                            { label: "【试探】轻声问：“去哪？羽幽城吗？”", next: "n5_Leave" }
+                        ]
+                    },
+                    n5_Drink: {
+                        text: "酒意上头，两人都有些醉了。\n\n江寒忽然往后一仰，躺在了城墙上。他望着头顶深黑的夜空，忽然很轻地说了一句：“好无聊。好想出去。”\n\n他的声音很轻，却不像平时那样带着刺。“这个地方困住了我，我觉得难受。”\n\n你偏过头去看他，江寒还躺在那里，眼睛看着天，声音却像从很深的地方浮上来。“我总觉得……哪里都一样。城里是墙，山里是墙，名头是墙，人也是墙。待久了，就烦。”\n\n你心口忽然一热。你比他更明白，何为被困于方寸之间。",
+                        options: [
+                            { label: "【大胆】坐直身子，“那我们现在就走！你敢不敢？”", next: "n5_Leave" },
+                            { label: "【温柔】“你想去哪，我带你去。”", next: "n5_Leave" }
+                        ]
+                    },
+                    n5_Leave: {
+                        text: "江寒愣住了。他坐起身，不可思议地看着你：“大半夜的，去哪？”\n\n“去羽幽城啊。”你被风一吹，酒意散了大半，眼睛却更亮了，“去你家。我还没去看过。”\n\n江寒脸上的表情瞬间僵住。他眼底那点酒后浮起来的松和散，一点一点沉了下去。\n\n你眯起眼激他：“怎么，堂堂羽幽城大祭司，不敢带我去啊？”\n\n江寒回过神，嘴硬地冷笑了一声：“谁不敢？走就走！”\n\n于是，你们当真从城墙上翻了下去，朝着南方的雾林走去。",
+                        options: [
+                            { label: "【跟上】跟着他走进雾林。", next: "n6_Forest" }
+                        ]
+                    },
+                    n6_Forest: {
+                        text: "夜里的路很长，榕乡城的灯火被你们远远甩在身后。\n\n南方的夜比北地潮湿，草木茂密。走到后来，四周渐渐起了雾。一开始只是浅浅一层，再往里走，雾便越来越重，连树影都像被泡开了，远近都分不清。\n\n江寒走得七歪八扭，越来越慢。你忽然在身后叫他：“江寒，你是不是不想带我去啊？”\n\n他脚步一顿，转过身来。那张平日里总带着几分欠揍的脸，在浓雾里显得有些模糊。他低声问：“风清雁，如果有一天，我不是羽幽城的祭司了，我们还能像现在这样吗？”\n\n你看着他，酒意在脑中渐渐散开。",
+                        options: [
+                            { label: "【直白】“还有这等好事？我早就不想听你摆谱了。”", next: "n7_End" },
+                            { label: "【反问】“你是不是遇到什么事了？”", next: "n7_End" },
+                            { label: "【动作】没有说话，借着酒意，直接上前一步。", next: "n7_End" }
+                        ]
+                    },
+                    n7_End: {
+                        text: "江寒看着你，眼底那点沉忽然慢慢散开了。他笑了一下，很轻，像什么一直压在胸口的东西终于落了地。\n\n四周的雾越来越浓。他忽然抬手，掌心落在你脸侧，动作很轻，像怕重一点就把你惊走了。\n\n你僵在原地。江寒看着你，声音低哑：“风清雁，你现下这样……像在哄孩子。”\n\n你没答，仰起脸看着他，心口滚烫。\n\n就在这时，雾林深处忽然传来一声极熟的骂。\n\n“两个小祖宗——”\n\n你和江寒齐齐僵住。下一瞬，云谦一手一个，拎着你们后颈就往外拖：“大半夜翻墙，喝酒，私奔，往南方雾林里钻？下回干这种事儿把我也带上啊，我爱看！”\n\n【剧情结束】",
+                        options: [
+                            { label: "【返回】带着这点偷来的酒意，回到主界面。", next: "END" }
+                        ]
+                    }
+                } 
+            },
+                        'lv7': { 
+                name: '酒吻·雾林之约', 
+                minAff: 80, 
+                maxAff: 89, 
+                nodes: {
+                    start: {
+                        text: "榕乡城的夜，比你想得还要闹。\n\n东南的风是潮的，穿过满城榕树垂下来的气根，把灯火也吹得发软。街上全是人，卖花米饭的，卖甜酒酿的，卖银铃和木牌的，远处还有人围着火堆跳舞，裙摆一晃一晃，银饰撞出碎响，热闹得像要把整座城都烧起来。\n\n你觉得吵，江寒显然也觉得吵。你们没商量，却默契地同时往人少的地方走，不知不觉便翻上了城墙。\n\n城墙顶上风很大，把底下的喧闹声隔绝得远远的，只剩下夜风拂过衣摆的猎猎声。\n\n你刚站稳，就看到江寒已经找了个宽敞的城垛坐下，手里不知从哪儿摸出了一只酒壶，正仰头灌了一口。酒香顺着风飘过来，勾人得很。\n\n“哟，圣女大人也睡不着？”他听见动静，连头都没回，只是晃了晃手里的酒壶，语气里带着惯常的欠揍，“怎么，这满城的烟火气，熏得你跳大神都跳不安生？”\n\n你翻了个白眼，走过去在他身边坐下：“你少阴阳怪气。哪来的酒？”\n\n“偷的。”他理直气壮。\n\n“你还挺骄傲。”你懒得跟他废话，直接伸手去抢。",
+                        options: [
+                            { label: "【扑过去硬抢】“给我喝一口，不然我就喊人抓贼了！”", next: "n1_A" },
+                            { label: "【激将法】“就你那点破酒，本圣女还看不上呢。”", next: "n1_B" },
+                            { label: "【安静坐着】不抢，就这么静静地看着他喝。", next: "n1_C" }
+                        ]
+                    },
+                    n1_A: {
+                        text: "你话音刚落，整个人直接朝他那扑了过去，双手去夺他手里的酒壶。\n\n墙头本就不宽，你这一压，江寒猝不及防，肩背一下撞上了后头的砖石。酒壶也跟着晃出一点清冽的酒香，洒在了他的衣襟上。\n\n你本来只想抢酒，谁知扑得太近，一抬眼，正好撞进他那双黑得发深的眼睛里。\n\n你能看清他眼尾被夜风吹出的一点红，甚至能感觉到他呼吸落下来时，带着一点潮热的酒气，擦过你的脸颊。\n\n江寒被你压在身下，喉结微微滚了一下。他比你先一步开口，语气依旧欠揍，但声音里明显带着点哑：“喝个酒而已，风清雁，你这架势，不知道的还以为你要轻薄我。”\n\n你敏锐地捕捉到了他耳根泛起的红，心口猛地一跳。你立刻起身，装作若无其事地瞪他：“我轻薄你？你想得美！”\n\n他轻咳了一声，到底还是把酒壶递给了你。",
+                        options: [
+                            { label: "【喝一口】接过来，仰头喝了一大口。", next: "n2_Drink" }
+                        ]
+                    },
+                    n1_B: {
+                        text: "江寒闻言，冷笑了一声，不仅没把酒壶递过来，反而故意当着你的面又喝了一口，还发出一声惬意的长叹。\n\n“看不上就别看，小爷我自己还不够喝呢。”他眯着眼看你，像只护食的狐狸。\n\n“你——”你被他这副欠揍的模样气笑了，“江寒，你真是个幼稚鬼。”\n\n“多谢夸奖。”他皮笑肉不笑地回了一句。\n\n到底还是你退了一步，撇了撇嘴，小声嘀咕了一句“小气”。\n\n江寒听见了，忍不住笑了一声，随后把酒壶扔进你怀里：“逗你的。拿去吧，免得北地笨猪渴死在城墙上。”",
+                        options: [
+                            { label: "【接住】接住酒壶，也顾不上嫌弃他，喝了一口。", next: "n2_Drink" }
+                        ]
+                    },
+                    n1_C: {
+                        text: "你难得没有跟他对着干，只是安静地坐在他身边，双手抱着膝盖，看着城墙下星星点点的万家灯火。\n\n江寒似乎也没料到你会这么老实，他拿着酒壶的手顿了一下，偏头看了你一眼。\n\n夜风吹起你鬓边的发丝，你听见他低低地笑了一声：“怎么，圣女大人今天转性了？这么安静，不会是被什么脏东西夺舍了吧？”\n\n你转过头，瞪了他一眼：“你才被夺舍了。我只是觉得，这风挺舒服的。”\n\n江寒没接话，只是沉默了片刻后，把酒壶递到了你面前。\n\n“喏。”他语气随意，“喝点吧，能驱寒。”\n\n你接过来，壶口还残留着他手心的温度。",
+                        options: [
+                            { label: "【小酌】仰头，浅浅地抿了一口。", next: "n2_Drink" }
+                        ]
+                    },
+                    n2_Drink: {
+                        text: "酒是烈的，顺着喉咙一路烧下去。你酒量算不得太好，被呛得猛地咳了一声，眼眶都泛起了潮意。\n\n“就这点酒量？”江寒在旁边毫不留情地嘲笑你。\n\n“你装什么，你能强到哪儿去。”你嘴硬地砸回一句。\n\n“至少比你强。”\n\n“放屁。那就比比。”\n\n你们两人谁也不肯认输，就着这壶酒，在城墙顶上你一口我一口地喝了起来。\n\n起初还较着劲，到后来，谁喝了多少都分不清了，只剩下夜风在耳边吹，酒意上头，视线里的灯火也开始变得摇晃。\n\n江寒似乎坐不住了，他往后一仰，整个人直接躺在了城墙顶上。\n\n他望着头顶深黑的夜空，忽然很轻地说了一句：“好无聊。”\n\n你还在犹豫着该怎么接这句话，结果下一句，他却接得很轻，也很真。\n\n“好想出去。这个地方困住了我，我觉得难受。”",
+                        options: [
+                            { label: "【冲动】坐直身子，踢了踢他：“那我们现在就走！”", next: "n3_Leave" },
+                            { label: "【温柔】静静看着他，轻声问：“那你想去哪儿？”", next: "n3_Leave" },
+                            { label: "【沉默】没有说话，只是把剩下的酒一口喝干，然后把酒壶扔下城墙。", next: "n3_Leave" }
+                        ]
+                    },
+                    n3_Leave: {
+                        text: "江寒明显愣住了，他猛地坐起身，不可思议地看着你。\n\n“走啊！”你被风一吹，酒气散了大半，眼睛却更亮了，“不是你说无聊，不是你说想出去？你告诉我的，什么都不要怕。走！现在，立刻，马上，别在这儿待着了。”\n\n江寒大概是没想到你比他还疯，憋了半天才吐出一句：“这大半夜的……能到哪儿去。”\n\n你一听就乐了，侧过身看他：“江寒，我那泼皮爹不是说过，逍遥一途，无他，随心所欲、肆意妄为而已。大半夜才应该做比较疯的事情。”\n\n江寒失笑：“你这会儿想起来云谦说的话了？”\n\n你扬着下巴：“那你别管。走，去羽幽城。”\n\n“什么？”江寒脸上的笑意僵住了一瞬。\n\n“去你家啊。”你眯起眼激他，“怎么，不敢带我去啊？”",
+                        options: [
+                            { label: "【挑衅】“堂堂羽幽城大祭司，连自己家都不敢回？”", next: "n4_Forest" },
+                            { label: "【激将】“还是说，你怕我去了，就不想走了？”", next: "n4_Forest" }
+                        ]
+                    },
+                    n4_Forest: {
+                        text: "江寒回过神，嘴硬地冷笑了一声：“谁不敢？走就走！”\n\n于是，你们两人当真从高高的城墙上翻了下去，趁着夜色，一路往南。\n\n夜里的路很长，榕乡城的灯火被你们远远地甩在了身后。南方的夜和北地不一样，风里湿，草木也密，走得深了，脚下土都是潮的。\n\n走到后来，四周渐渐起了雾。\n\n一开始只是浅浅一层，再往里走，雾便越来越重，连树影都像被泡开了，远近都分不清。\n\n江寒走得七歪八扭，越来越慢。你盯着他的背影看了一会儿，忽然开口：“江寒，你是不是不想带我去啊？”\n\n江寒脚步一顿。\n\n过了好一会儿，他才转过身。那张平日里总带着几分欠揍和冷意的脸，在雾里显得有点模糊。他眼底那点一贯撑着的东西，像终于因为酒，因为夜色，因为四下无人，而松开了一道缝。\n\n“风清雁。”他低声叫你。\n\n“干嘛？”\n\n“如果有一天。”他看着你，嗓音哑了一点，“我不是羽幽城的祭司了，我们还能像现在这样吗？”",
+                        options: [
+                            { label: "【直白】“还有这等好事？我早就嫌你摆谱了。”", next: "n5_Confession" },
+                            { label: "【反问】“你是不是遇到什么事了？”", next: "n5_Confession" },
+                            { label: "【沉默】走上前，抢过他手里还剩一点酒的壶，仰头喝了一口。", next: "n5_Confession" }
+                        ]
+                    },
+                    n5_Confession: {
+                        text: "江寒看着你，眼底那点原本压着的沉，忽然慢慢散开了。他没接话，只是定定地看着你。\n\n四周的雾越来越浓，浓得几乎要将你们两人吞噬。\n\n他忽然抬手，掌心落在你脸侧，动作很轻，像怕重一点就把你惊走了。\n\n你承认，是你故意接近他，是你故意想让他的心乱。但这也是第一次，你这样近地由着一个人伸手碰你，默许了他的越界。\n\n“风清雁。”他低声叫你，“你现下这样……像在哄孩子。”\n\n你没答。下一瞬，你笑起来，仰起脸，让月色落在你眼中，盈出不似寻常的潋滟水色。\n\n“笑什么？”他问。\n\n“笑你。”你说，“怎么喝了酒，胆子倒比平时还小。”\n\n说完，不等他回嘴，你已经抬手攥住了他领口，把人往下拉了一点。\n\n雾很重，夜也很深。你们站在南方雾林里，脚下全是潮湿的草叶。你踮起脚尖，将唇印在了他的嘴角。\n\n起初只是很轻地一碰，唇边沾着酒气，热的，也软。\n\n可下一刻，江寒已经扣住了你的后颈，将那点轻触逼得更深。酒意、雾气、夜风，还有他掌心的温度，全都在这一刻一股脑压了上来。你被他按在怀里，鼻尖全是他身上的气息，连胸口都被撞得发麻。",
+                        options: [
+                            { label: "【沉沦】没有躲，任由这个吻在雾色中加深。", next: "n6_End" },
+                            { label: "【推开】在快要窒息前，伸手推开他，大口喘着气。", next: "n6_End" },
+                            { label: "【反客为主】学着他的样子，扣住他的后颈，不让他退开。", next: "n6_End" }
+                        ]
+                    },
+                    n6_End: {
+                        text: "不知道过了多久，江寒才稍稍退开一点。你们额头抵着额头，呼吸都乱得厉害，谁也没比谁体面多少。\n\n你眼尾发热，心口却渐渐松了下来。\n\n江寒盯着你，像还没从方才那一吻里回过神：“风清雁……”\n\n“干嘛？”\n\n“是你亲我的。”\n\n“怎么。”你故意挑眉，“不行？”\n\n“行。”他低声说，“怎么不行，你做什么都行。”\n\n你还想再呛他两句，可一抬眼，却看见东方天色已经隐隐有些发灰。\n\n“快天亮了。”你心里一跳。\n\n江寒也回头看了一眼，显然这才后知后觉地意识到，你们还在雾林里。\n\n“回去。”他说。\n\n“嗯，回去。”\n\n说得倒轻松。可等你们一转身，才发现这雾林里哪里还有路。四下都是雾，树影重重叠叠，远看近看都像一个样。\n\n就在你们面面相觑时，雾林深处忽然传来一声极熟的骂。\n\n“两个小祖宗——”\n\n你和江寒齐齐僵住。\n\n下一瞬，云谦一手一个，拎着你们后颈就往外拖：“大半夜翻墙，喝酒，私奔，往南方雾林里钻？下回干这种事儿把我也带上啊，我爱看！”\n\n江寒脸一下黑了，偏偏又不敢在这时候真顶回去，只能咬着牙硬忍。\n\n你偏头看向江寒，江寒也正好看过来。他耳根还有点红，可在云谦一路的骂声里，他却还是悄悄朝你勾了一下手指。\n\n【剧情结束】",
+                        options: [
+                            { label: "【返回】带着唇边残留的酒意与温度，回到主界面。", next: "END" }
+                        ]
+                    }
+                } 
+            },
+                        'lv8': { 
+                name: '深情·生辰之礼', 
+                minAff: 90, 
+                maxAff: 99, 
+                nodes: {
+                    start: {
+                        text: "榕乡城的喧嚣仿佛被隔绝在了千里之外。\n\n今夜没有风，客栈的屋顶上只有一轮澄澈的圆月。你提着一壶刚温好的酒翻上屋脊，果不其然，江寒已经坐在了那里。\n\n他今天没有穿那身端着的锦衣，只着了件单薄的白衣，衣带松垮地系着。月光洒在他侧脸上，显得少见的安静。\n\n听到动静，他偏过头看你，眼神里没了往日的戏谑和防备，只是静静地看着，仿佛在确认你真的站在这里。\n\n“怎么，怕小爷我半夜跑了？”他伸手接过你手里的酒，声音有些低沉。\n\n你在他身边坐下，看着他的眼睛，忽然有一种极其强烈的直觉——今晚，有些事，他瞒不住了。",
+                        options: [
+                            { label: "【直接逼问】“江寒，你到底是谁？别再拿羽幽城来敷衍我。”", next: "n1_A" },
+                            { label: "【温柔试探】“你有心事。从阵道大典回来，你就一直怪怪的。”", next: "n1_B" },
+                            { label: "【默默陪伴】没有说话，只是拿过酒壶，倒了两杯酒，递给他一杯。", next: "n1_C" }
+                        ]
+                    },
+                    n1_A: {
+                        text: "江寒拿着酒杯的手顿住了。\n\n他沉默了很久，久到你以为他又要用什么轻浮的话搪塞过去。\n\n可他没有。他仰起头，将杯中的酒一饮而尽，随后放下杯子，转过头看着你。\n\n“风清雁，如果我说，我不是江寒，我甚至……连这世间的人都不算呢？”\n\n他的语气极其平静，却像是一块巨石砸进了你的心湖。你愣在原地，看着他苦笑了一下，从怀里摸出那一沓厚厚的纸——那是被他从你那里收走的话本。\n\n“你们这个世界，只是一本名叫《既往》的书。”他指着自己，笑得比哭还难看，“而我，连个配角都不配。我是一页废稿。”\n\n“我叫风清砚。砚台的砚。”\n\n他说出这个名字的时候，眼神里翻涌着无尽的哀戚。",
+                        options: [
+                            { label: "【震惊】“风清砚……所以，原本被删掉的人，是你？”", next: "n2_A1" },
+                            { label: "【心疼】什么都不问，直接倾身过去，将他连同那堆废纸一起紧紧抱住。", next: "n2_A2" },
+                            { label: "【荒谬】“废稿？你以为编这种谎话，我就会心疼你吗？”", next: "n2_A3" }
+                        ]
+                    },
+                    n2_A1: {
+                        text: "“对，是我。”\n\n江寒点了点头，眼底的光彻底暗了下去。他低下头，看着自己苍白的手指，声音轻得像要被风吹散。\n\n“这十年，我就像个孤魂野鬼一样活着。我看着风清雁占了我的位置，看着云谦做了她的好父亲。我连吃一口热饭，都要顶着别人的名字。”\n\n他忽然抓住你的手腕，力道大得有些发疼，眼底带着近乎病态的执拗：“你是不是觉得我特可笑？一个纸片人，居然还妄想拿回自己的一切。”\n\n“你放开我！”你下意识地挣扎了一下。\n\n他的手像被烫到一般，猛地松开，眼底划过一丝浓重的受伤。他别过脸，声音发哑：“对不起。是我越界了。”",
+                        options: [
+                            { label: "【反悔】看到他这模样，你心中一痛，反手抓住了他的手。", next: "n3_Cake" }
+                        ]
+                    },
+                    n2_A2: {
+                        text: "你没有说话，只是倾身过去，将他连同那一地的废纸，紧紧地抱进了怀里。\n\n你能感觉到他在你贴近的瞬间，整个人都僵住了，连呼吸都停滞了。\n\n“……你干嘛？”他的声音闷闷地从你肩膀处传来，带着一丝不易察觉的颤抖，“小爷我不需要同情。”\n\n“我知道。”你抱着他，手轻轻抚着他的后背，“我只是心疼，这十年，你一个人是怎么过来的。”\n\n江寒的身体微微颤抖起来。他慢慢地、试探性地抬起手，回抱住你，力气大得像是要把你揉进骨血里。\n\n“风清雁……”他把脸埋在你的颈窝里，声音带着点鼻音，“别对我这么好，我会当真的。”",
+                        options: [
+                            { label: "【心疼】顺着他的话，轻声道：“那就当真吧。”", next: "n3_Cake" }
+                        ]
+                    },
+                    n2_A3: {
+                        text: "江寒的脸色在月光下白得吓人。\n\n他死死盯着你，眼里的光一寸寸冷了下去。他忽然笑了，笑得极其自嘲，又极其凄凉。\n\n“是啊，我就是在编谎话。”他站起身，往后退了一步，语气恢复了那种冷冰冰的讥讽，“我就是个满嘴谎言的骗子，你满意了吧？”\n\n“江寒，我不是那个意思……”你意识到自己说错了话，急忙想要去拉他。\n\n他却避开了你的手，偏过头，声音哑得厉害：“风清雁，你可以不信我，但也别用这种话来刺我。我只是……我只是太累了，想找个人说说话而已。”",
+                        options: [
+                            { label: "【懊悔】“对不起，江寒，我刚才只是太震惊了。你别走。”", next: "n3_Cake" }
+                        ]
+                    },
+                    n1_B: {
+                        text: "江寒仰头灌了一口酒，喉结滑动了一下。\n\n他侧过头，直勾勾地看着你，那双黑眸深得像一汪潭水：“你想知道？”\n\n“我是风清砚。”他忽然开口，语气很轻，但每个字都砸得很重，“十年前，被执笔者一笔抹掉的人，是我。现在这个江寒的身份，也不过是我偷来的。”\n\n他以为你会震惊、会害怕、甚至会觉得他是个疯子。\n\n“原来如此。”你看着他，眼底没有恐惧，反而浮起了一丝释然，“难怪你懂我的惧，难怪你靠近莲心珠却不受影响。因为你和这世间，本就没有因果。”\n\n江寒愣了一下，似乎没想到你会这么快接受。",
+                        options: [
+                            { label: "【试探】“那你今晚告诉我这些，是打算跟我做最后的告别吗？”", next: "n2_B1" },
+                            { label: "【安抚】“不管你是江寒还是风清砚，对我来说，你就是你。”", next: "n2_B2" }
+                        ]
+                    },
+                    n2_B1: {
+                        text: "“告别？”江寒像是听到了什么笑话，笑得肩膀都在发颤。\n\n他猛地凑近你，鼻尖几乎贴着你，温热的呼吸交缠在一起：“风清雁，小爷我好不容易才活得像个人，好不容易才牵到你的手，你觉得我舍得走？”\n\n“那你今晚是在干什么？博同情？”你挑眉看他。\n\n“我是在赌。”江寒直勾勾地看着你，“赌你这个高高在上的圣女，会不会在知道我是一张废纸后，还愿意跟我这个废稿混在一起。”\n\n他自嘲地笑了笑，仰头靠在屋脊上：“看来，我是赌赢了。”",
+                        options: [
+                            { label: "【反问】“那你的赌注是什么？”", next: "n3_Cake" }
+                        ]
+                    },
+                    n2_B2: {
+                        text: "江寒怔怔地看着你，嘴角的弧度渐渐僵住，随后，那双总是带着防备的眼睛里，竟慢慢泛起了一层水光。\n\n他偏过头，用力吸了一口气，像是在极力压制着某种濒临崩溃的情绪。\n\n“风清雁，你这人真没意思。非要说得这么煽情干什么。”他嘟囔了一句，声音却带着明显的鼻音。\n\n他往你身边靠了靠，肩膀抵着你的肩膀，声音轻得像梦呓：“那你记住今晚的话。以后要是反悔了，我就……我就真的没有活路了。”",
+                        options: [
+                            { label: "【调侃】“堂堂大祭司，怎么还学会撒娇了？”", next: "n3_Cake" }
+                        ]
+                    },
+                    n1_C: {
+                        text: "你一言不发，只把倒满的酒杯递给他。\n\n江寒看了你一眼，接过杯子，一饮而尽。\n\n一连喝了三杯，他忽然把杯子搁在瓦片上，转过头，定定地看着你。\n\n“风清雁，我叫风清砚。砚台的砚。”\n\n他说这话时，眼底没有了掩饰，也没有了平时那种故作嚣张的笑意，只剩下一种近乎脱光的坦诚。\n\n“我是那个被删掉的人。现在这具躯壳，这个身份，都是偷来的。”\n\n你看着他，没打断他，也没露出任何惊骇或嫌恶的神情，只是安静地听着。",
+                        options: [
+                            { label: "【理解】“所以，你一直在一个人扛着这些？”", next: "n2_C1" },
+                            { label: "【共情】“被夺走一切的感觉，我懂。因为莲心珠，我也曾觉得自己不配活着。”", next: "n2_C2" }
+                        ]
+                    },
+                    n2_C1: {
+                        text: "江寒听到这句话，微微愣了一下，随后偏过头去，掩饰般地笑了一声：“不扛着又能怎样？小爷我总不能逢人就说，喂，我其实是个被抹掉的鬼魂吧。”\n\n他虽然在笑，但你分明看到，他握着酒杯的指尖在微微泛白。\n\n你伸出手，轻轻地覆上了他的手背。\n\n他的身体猛地一僵，转头看向你，眼底翻涌着极其复杂的情绪。",
+                        options: [
+                            { label: "【温柔】“以后，你就不用一个人扛了。”", next: "n3_Cake" }
+                        ]
+                    },
+                    n2_C2: {
+                        text: "江寒看着你，眼底的防备在这一刻彻底土崩瓦解。\n\n“对。”他声音哑得厉害，“那种感觉，就像是被整个世界抛弃了，无论你怎么喊，怎么挣扎，都没有人听得见。”\n\n他忽然伸手，把你拉进怀里，把脸死死埋在你的肩窝。\n\n“风清雁，我们其实是一样的人。”他闷声道，“都被困在方寸之间，都拼了命地想活下去。”\n\n你回抱住他，轻轻拍了拍他的背：“对，所以我们要一起活下去。”",
+                        options: [
+                            { label: "【温暖】静静地抱着他，感受他的体温。", next: "n3_Cake" }
+                        ]
+                    },
+                    n3_Cake: {
+                        text: "过了许久，两人的情绪才渐渐平复下来。\n\n夜风有些凉了，你看着江寒，忽然想起今天在白日里听到的闲言碎语。\n\n“江寒。”你忽然叫他。\n\n“干嘛？”他放开你，揉了揉微红的眼角。\n\n“今天，是不是你的生辰？”你盯着他的眼睛，“我听客栈老板说，今日是十月十五。”\n\n江寒愣了一下，眼神有些闪躲：“谁记得那玩意儿。一个废稿，过什么生辰。”",
+                        options: [
+                            { label: "【变戏法】像变戏法一样，从怀里摸出一个小巧的油纸包，“生辰快乐，风清砚。”", next: "n4_Gift1" },
+                            { label: "【做碗面】“你等一会儿，我下去给你做碗长寿面。”", next: "n4_Gift2" },
+                            { label: "【发带】抽下自己头上的一根青色发带，递给他，“来不及准备了，这个给你。”", next: "n4_Gift3" }
+                        ]
+                    },
+                    n4_Gift1: {
+                        text: "江寒的目光落在那油纸包上，整个人都僵住了。\n\n“你……你什么时候准备的？”他的声音有些发颤。\n\n“白天路过的时候顺手买的。不知道你喜欢什么口味，就买了块桂花糕。”你打开纸包，里面是一块做得精致小巧的糕点。\n\n江寒小心翼翼地伸出手，把那块桂花糕捧在掌心，像是在捧着什么绝世的珍宝。\n\n他低下头，咬了一小口，半天没有抬起来。\n\n“甜吗？”你问。\n\n“嗯。”他重重地吸了一下鼻子，声音哑得不成样子，“特别甜。”\n\n他抬起头，眼眶红通通的，却冲你露出一个极好看的笑：“风清雁，这是我十年来，收到的第一份生辰礼。”",
+                        options: [
+                            { label: "【心疼】伸手替他擦去眼角的泪花。", next: "n5_ReturnGift" }
+                        ]
+                    },
+                    n4_Gift2: {
+                        text: "“不用！”江寒一把拉住你的手腕，把你拽了回来。\n\n他力道没控制好，你直接跌进了他怀里。\n\n“别去，我不饿。”他闷闷地说着，下巴抵在你的肩膀上，“你就是我最好的生辰礼了。”\n\n你被他抱得有点紧，忍不住拍了拍他的背：“你是想把我勒死当礼物吗？”\n\n他被你逗笑了，松开了一点。\n\n“那不行，你死了，我去哪找这么好的生辰礼。”他低下头，额头抵着你的额头，声音轻柔又满足。",
+                        options: [
+                            { label: "【顺势】凑过去，在他唇上轻轻啄了一下。", next: "n5_ReturnGift" }
+                        ]
+                    },
+                    n4_Gift3: {
+                        text: "江寒低头看着你递过来的青色发带，微微怔住。\n\n“你这算什么？定情信物？”他挑眉，语气里带着点笑意。\n\n“爱要不要。”你作势要收回。\n\n他眼疾手快地抢了过去，紧紧地攥在手里：“送出去的东西，哪有收回去的道理。”\n\n他低下头，把那根发带仔细地系在自己的手腕上，打了个结。\n\n“好了，从今天起，小爷我就是你的人了。”他抬起手腕，在你眼前晃了晃，像是在炫耀。",
+                        options: [
+                            { label: "【傲娇】“想得美，本圣女可没说要养你。”", next: "n5_ReturnGift" }
+                        ]
+                    },
+                    n5_ReturnGift: {
+                        text: "气氛正好，江寒却忽然像想起了什么。\n\n他伸手入怀，摸出了一个看着有些破旧的大包袱，塞到你怀里。\n\n“干嘛？这是什么？”你疑惑地看着他。\n\n“你的。”他别过脸，耳根有些泛红，“十岁到十九岁的生辰礼。之前一直没机会给你，现在……一并补上吧。”\n\n你打开包袱，发现里面零零碎碎装了十几样东西。有一柄雕花木剑，几瓶上好的灵药，一盒已经有些干掉的胭脂，还有些奇奇怪怪的小玩意。\n\n这些都是他这十年里，每年攒下来，却从未送出去的心意。",
+                        options: [
+                            { label: "【动容】拿起那柄木剑，“你每年都准备了吗？”", next: "n6_Final" },
+                            { label: "【好笑】“送女孩子木剑和灵药？你是不是脑子有病？”", next: "n6_Final" },
+                            { label: "【心疼】看着这些礼物，你忽然觉得鼻子有些发酸。", next: "n6_Final" }
+                        ]
+                    },
+                    n6_Final: {
+                        text: "江寒被你问得有些局促，连手都不知道该往哪里放了。\n\n“我……我又没给女孩子准备过这些。我寻思着，灵药能防身，木剑能练功，不都挺好的吗……”他越说声音越小，有些懊恼。\n\n你看着他那副窘迫又认真的样子，忽然笑了出来。你放下东西，倾身过去，双手捧住他的脸。\n\n“风清砚。”你一字一句地叫他的名字。\n\n江寒浑身一震，那双黑眸里映着你的倒影。\n\n“生辰快乐。”你认真地看着他。\n\n他再也忍不住，猛地扣住你的后脑，倾身吻了上来。这个吻不同于之前的试探与发疯，充满了失而复得的虔诚和温柔。\n\n他在你唇边低语：“风清雁，我爱你。”\n\n那一夜，所有的防备与算计终于彻底消散。你们在月光下相拥，像是要把这十年的遗憾，全都补齐。\n\n【剧情结束】",
+                        options: [
+                            { label: "【返回】历经千帆，得偿所愿。", next: "END" }
+                        ]
+                    }
+                } 
+            },
+                        'lv9': { 
+                name: '纯爱·偷来的片刻', 
+                minAff: 100, 
+                maxAff: 9999, 
+                nodes: {
+                    start: {
+                        text: "极北之地的雪原上，难得出了太阳。\n\n暖金色的阳光透过窗棂，洒在铺着厚厚兽皮的地毯上。你坐在窗前的软榻上，手里捧着一卷古册，懒洋洋地翻着页。\n\n院子里传来轻微的劈柴声。你抬起头，透过半开的窗子看出去。\n\n那个曾经满身防备、满嘴讥讽的“羽幽城大祭司”，此刻正挽着袖子，衣摆随便地掖在腰间。他手里拿着一把斧头，动作利落地将木柴劈成两半，额角渗出细密的汗珠，在阳光下微微泛着光。\n\n这里不是莲心城，也不是小苍山，只是极北之地边缘的一个无名小镇。没有圣女，没有祭司，没有长老，也没有剧本。\n\n只有你，和他。\n\n“看什么呢？北地笨猪。”似乎是察觉到了你的视线，他抬起头，用袖子擦了把汗，眉眼间舒展开一个极尽温柔的笑。\n\n你合上古册，撑着下巴看着他。",
+                        options: [
+                            { label: "【夸赞】“看我家风清砚干活的样子，真俊。”", next: "n1_A" },
+                            { label: "【调侃】“看某个不要脸的废稿，大冷天还出汗。”", next: "n1_B" },
+                            { label: "【行动】放下书卷，起身走出屋子，朝他走过去。", next: "n1_C" }
+                        ]
+                    },
+                    n1_A: {
+                        text: "风清砚听到那个名字，手上的动作明显顿了一下。\n\n他转过头，眼睛亮晶晶地看着你，耳根却不由自主地红了。哪怕已经在这里生活了几个月，他每次听到你喊他“风清砚”，依然会像个毛头小子一样不知所措。\n\n“风清雁，你这人怎么越来越没羞没臊了。”他嘀咕着，扔下斧头，拍了拍身上的木屑，“还不赶紧回去，外面风大，冻着你怎么办。”\n\n他嘴上嫌弃着，身体却很诚实地大步朝你走来，顺手把窗子关小了点，挡住了外头的冷风。\n\n他走进屋，身上带着冬日里特有的凛冽寒气，但靠近你时，那点寒气瞬间就被他体温的暖意融化了。",
+                        options: [
+                            { label: "【递茶】把手边的热茶递给他。", next: "n2_Tea" },
+                            { label: "【撒娇】“可是我想看你。”", next: "n2_Tea" }
+                        ]
+                    },
+                    n1_B: {
+                        text: "“谁出汗了？这叫精气神！”风清砚在外头梗着脖子反驳，却还是乖乖把手上的木屑拍干净，洗了手，快步走进屋里。\n\n他走过来，带着一身寒气和淡淡的皂角香，故意凑到你面前：“大冷天出汗怎么了？总比某个圣女天天窝在榻上，跟只没骨头的猫似的强。”\n\n你伸手戳了戳他的额头：“你说谁是猫？”\n\n他顺势抓住你的手，放在唇边亲了一下，笑得有些无赖：“谁应说谁。”",
+                        options: [
+                            { label: "【反击】反手捏住他的脸，报复性地揉搓。", next: "n2_Tea" }
+                        ]
+                    },
+                    n1_C: {
+                        text: "你披上外衣，推开门走了出去。\n\n院子里冷风一吹，你忍不住打了个哆嗦。风清砚见状，立刻扔下斧头，大步流星地走过来，动作自然地张开双臂，把你揽进了他怀里。\n\n“这么冷的天，出来干嘛？”他把下巴搁在你的头顶，声音里带着点责怪。\n\n你贴着他温热的胸膛，听着他沉稳有力的心跳声，只觉得这漫天风雪，似乎也没那么冷了。\n\n“出来看看你劈柴。”你闷声道。\n\n他低低地笑了，胸腔的震动隔着衣料传给你：“我有什么好看的。”",
+                        options: [
+                            { label: "【抬头】抬起头看着他，“当然好看。”", next: "n2_Tea" }
+                        ]
+                    },
+                    n2_Tea: {
+                        text: "你转身从屋里端出一壶刚沏好的热茶，倒了两杯。\n\n风清砚接过来，抿了一口，长舒了一口气。他盘腿坐在你旁边的地毯上，脑袋顺势靠在了你的膝盖上，像一只终于找到了庇护所、完全卸下防备的大狗。\n\n窗外的雪安静地下着，屋内的炭火烧得正旺，偶尔发出噼啪的轻响。\n\n“风清雁。”他闭着眼睛，忽然轻轻叫你的名字。\n\n“嗯？”你放下手中的茶杯，低头看着他。\n\n“我们现在这样……”他顿了顿，眼睫微微颤动，“真好。”",
+                        options: [
+                            { label: "【顺着】“是啊，再也不用提心吊胆了。”", next: "n3_Past" },
+                            { label: "【调侃】“怎么，大祭司过不惯平凡日子了？”", next: "n3_Past" },
+                            { label: "【抚摸】伸手，轻轻梳理着他的长发。", next: "n3_Past" }
+                        ]
+                    },
+                    n3_Past: {
+                        text: "他睁开眼，翻了个身，仰面看着你，眼里映着跳动的火光。\n\n“其实，有时候半夜醒过来，我都怕这是一场梦。”他伸出手，拽住你的一缕头发，放在指尖绕了绕，“我怕一睁眼，我又变成了那个只能缩在暗处、看着别人的风清砚。”\n\n他坐直了身子，认真地看着你：“毕竟，我是从剧本的废纸篓里爬出来的人。我不属于这里。”",
+                        options: [
+                            { label: "【坚定】“你属于我。这就够了。”", next: "n4_Promise" },
+                            { label: "【反问】“那你现在捏一捏自己，看看疼不疼？”", next: "n4_Promise" }
+                        ]
+                    },
+                    n4_Promise: {
+                        text: "风清砚看着你，忽然笑了。那笑容里，有释然，有满足，也有一点点坏心眼。\n\n他忽然凑近，伸手在你的腰上捏了一把。\n\n“啊！你干嘛？”你猝不及防地叫了一声，瞪着他。\n\n“你不是说让我捏一捏看看疼不疼吗？”他笑得一脸无辜，“小爷我舍不得捏自己，只能捏你了。”\n\n“风清砚！你找死！”你作势要打他，他却一把将你拉住，把你拽进了怀里。",
+                        options: [
+                            { label: "【挣扎】“放开我，你这个无赖！”", next: "n5_Name" },
+                            { label: "【放弃】顺势窝在他怀里，懒得动弹。", next: "n5_Name" }
+                        ]
+                    },
+                    n5_Name: {
+                        text: "你被他搂在怀里，挣扎了两下，也就随他去了。\n\n他抱着你，下巴抵在你的发顶，忽然没头没脑地冒出一句：“风清雁，你再叫叫我的名字。”\n\n你抬起头，疑惑地看着他：“为什么？”\n\n“不为什么，就是想听。”他眼神有些躲闪，但态度很坚决，“快点。”\n\n你知道，他大概是又想起了当初被剥夺名字的痛。那个名字，对他来说，不仅仅是一个称呼，更是他存在过的唯一证明。",
+                        options: [
+                            { label: "【郑重】“风清砚，砚台的砚。”一字一句地念给他听。", next: "n6_Final" },
+                            { label: "【轻唤】“风清砚。”凑到他耳边，声音温柔而坚定。", next: "n6_Final" }
+                        ]
+                    },
+                    n6_Final: {
+                        text: "当他听到你喊出那个名字时，他的眼神瞬间变得无比柔和，仿佛有一汪春水在他眼底化开。\n\n“风清雁。”他低下头，额头抵着你的额头，声音低哑而深情，“谢谢你。”\n\n“谢我什么？”\n\n“谢谢你还记得我。谢谢你让我活在了你的世界里。”\n\n他偏过头，极其温柔地吻住了你。\n\n这个吻没有任何的掠夺和绝望，只有细水长流的珍重与爱意。他在你唇边轻声道：“以前我总觉得，我从天命中偷来的这些片刻，总有一天要还回去。但现在，我不想还了。”\n\n他抬起头，看着窗外渐渐停歇的雪，笑得肆意而坦荡。\n\n“我叫风清砚，砚台的砚。我这辈子，偷到了最好的结局。”\n\n【剧情结束】",
+                        options: [
+                            { label: "【返回】沉浸在这偷来的、却已化为永恒的片刻之中。", next: "END" }
+                        ]
+                    }
+                } 
+            },
+                        'ten_lives': { 
+                name: '隐藏·十生十世', 
+                minAff: 9999, 
+                maxAff: 9999, 
+                nodes: {
+                    start: {
+                        text: "你推开了那扇门。\n\n门内没有阵法，只有一盏即将燃尽的残烛。江寒坐在烛光里，脸色苍白得像透明的纸，连呼吸都微弱得几乎听不见。\n\n他将一本泛黄的话本推到你面前，手指在封面上停留了很久，才沙哑地开口：“风清雁，看看这十生十世吧。看看……没有宿命纠缠的我们。”\n\n你翻开话本。\n\n【第一世，侯府少爷。】他为了护你，在漫天大雪里跪断了双腿，将带血的婚书塞进你手里。\n\n【第二世，清冷师尊。】他替你挡下三十六道戒鞭，修了半生的无情道，最终在你怀里破戒。\n\n【第三世，魔君。】他将你囚在魔宫，却为你屠尽满城风雨，最后死在你的剑下，笑着说：“你哭一声，我便杀十人。”\n\n一页又一页。九生九世，全是极尽惨烈的深情。你看着看着，忽然觉得眼皮重若千钧，那些字迹开始扭曲、模糊。\n\n“江寒，你这算什么……”你强撑着抬起头，却看到他正用一种你从未见过的、近乎哀伤的眼神看着你。\n\n“睡吧，风清雁。”他隔着烛光轻声说，“梦里，我带你去看点不一样的。”\n\n你再也支撑不住，眼前一黑，意识彻底坠入了深渊。",
+                        options: [
+                            { label: "【沉沦】任由黑暗将你吞噬。", next: "n1_Snow" }
+                        ]
+                    },
+                    n1_Snow: {
+                        text: "“轰隆——”\n\n震耳欲聋的爆炸声在耳边炸响。你猛地睁开眼，入目是漫天的大雪和冲天的火光。\n\n你低头看向自己，身上穿着裁剪合体的西式洋装，鼻梁上架着一副圆框眼镜，手里紧紧攥着一把发烫的勃朗宁手枪。空气中弥漫着硝烟和血腥的味道。\n\n记忆如潮水般涌入脑海。你是燕青，是抗联地下党，是这趟幽灵列车的列车长。\n\n“列车长，前面的铁轨被炸断了，日本人追上来了！”远处传来同志的呼喊。\n\n你举目四望，四周全是全副武装的日本兵。就在你以为必死无疑的时候，一阵奇异的哨声穿透了风雪。\n\n“鸣——”\n\n伴随着鹿蹄声，两匹高大神骏的白鹿如幽灵般跃出，直接撞翻了前方的几个日军。\n\n“喂！那个戴眼镜的！”一个清朗而野性的声音从鹿背上传来，“发什么呆？不要命了？”\n\n一个穿着兽皮、长发微卷的青年，骑着白鹿停在你不远处，手里挥舞着一把锋利的弯刀。\n\n他是乌兰。",
+                        options: [
+                            { label: "【开枪还击】举枪击杀乌兰身后的日本兵。", next: "n2_Meet" },
+                            { label: "【大喊】“小心左侧！”", next: "n2_Meet" }
+                        ]
+                    },
+                    n2_Meet: {
+                        text: "乌兰回头，弯刀反手一挥，砍断了左侧敌人的脖子。鲜血溅在雪地上，触目惊心。\n\n他借着白鹿冲势，一把揽住你的腰，将你拽上鹿背。\n\n“抓紧我！”他大喊一声，扯动缰绳。\n\n白鹿纵身跃起，在密集的弹雨中左突右闪，几个起落间便将追兵甩在了茫茫林海之中。\n\n你们来到了一处隐蔽的山洞。乌兰生起了火。你这才看清他的长相，他的眉眼极深，像兴安岭最烈的风。\n\n【乌兰】：“外乡人，你这枪法不错，就是胆子太大。一个人敢拦那么多日本人？”\n\n他递给你一块烤热的肉干，眼神里带着不加掩饰的欣赏与好奇。\n\n【乌兰】：“我叫乌兰，鄂族的族长。你呢？”",
+                        options: [
+                            { label: "【冷清】推了推眼镜，“燕青。谢谢你救我，但我没钱付报酬。”", next: "n3_Past" },
+                            { label: "【试探】“你为什么要救我？不怕我连累你？”", next: "n3_Past" },
+                            { label: "【沉默】接过肉干，小口咬着，目光一直停留在他的脸上。", next: "n3_Past" }
+                        ]
+                    },
+                    n3_Past: {
+                        text: "乌兰爽朗地笑了起来，他的笑声在狭窄的山洞里回荡，带着一种生机勃勃的力量。\n\n【乌兰】：“我们鄂族人做事，从来不问值不值得。看你顺眼，就救了。怎么，救你还要挑日子？”\n\n他凑近了一些，火光照亮了他深邃的眼睛。\n\n【乌兰】：“不过……你这眼睛，明明长得挺好看，为什么要藏在这么厚的镜片后面？像个生人勿近的老学究。”\n\n你下意识地摸了摸自己的眼镜，那是你从小就戴着的护身符，也是你用以隔绝世界的屏障。\n\n【乌兰】：“别藏了。这山里黑，但在我们鄂族人眼里，晚上的林子可比白天热闹多了。走，我带你去个好地方。”\n\n他站起身，向你伸出了那只骨节分明的手。",
+                        options: [
+                            { label: "【握上去】被他眼底的热烈感染，把手递给了他。", next: "n4_Daily" },
+                            { label: "【拒绝】“外面还有追兵，我不能连累你。”", next: "n4_Daily" }
+                        ]
+                    },
+                    n4_Daily: {
+                        text: "乌兰没有强求，而是直接把你打横抱起，带到了洞口。\n\n“看，这就是我们鄂族人世代守护的兴安岭。”他指着远方的雪山。\n\n夜色中，整个兴安岭笼罩在一层淡淡的银辉下。无数纯白的光点在山林间如萤火般跳跃闪烁——那是鄂族人口中灵魂的归处，白桦林。\n\n【乌兰】：“这些光点，是我们死去的先辈。我们鄂族人相信，人死了以后，灵魂就会变成这些白桦林里的光，一直守护着活着的人。”\n\n你看着这一幕，心底那份一直悬着的、关于生死的恐惧，仿佛被莫名抚平了。\n\n【乌兰】：“燕青，别总绷着一张脸。我知道外面世道乱，但既然到了这儿，不如就好好活几天。”\n\n他低头看你，目光在夜色里亮得惊人。\n\n【乌兰】：“你愿意留下来吗？不为了什么任务，就为了你自己。”",
+                        options: [
+                            { label: "【卸下心防】“好。但我可能只会待几天。”", next: "n5_Confession" },
+                            { label: "【反问】“留下来干嘛？陪你放鹿吗？”", next: "n5_Confession" }
+                        ]
+                    },
+                    n5_Confession: {
+                        text: "乌兰笑得更开心了：“放鹿怎么了？这可是我们鄂族人的绝活。”\n\n接下来的几天，你们在兴安岭里纵情奔跑。他带你骑马（白鹿）、打猎、教吹鹿哨。\n\n你发现他不仅是个优秀的猎手，还是个极度温柔的人。他会在你木症发作（头痛）的时候，整夜整夜地守着你，给你熬煮最温暖的鹿奶。\n\n直到那个黄昏。乌兰带着你来到白桦林深处。\n\n他摘下你鼻梁上的圆框眼镜。你下意识地想闪躲，却被他捧住了脸。\n\n【乌兰】：“燕青，你知道吗。我们鄂族人有个规矩。如果一个男人喜欢一个女人，就要带她来这里，吹响最长的鹿哨，向她求三次婚。”\n\n你愣住了。\n\n【乌兰】：“第一次，是问你愿不愿意听；第二次，是问你愿不愿意留；第三次……”\n\n他深深地看着你，那双黑曜石般的眼睛里，全是你的倒影。\n\n【乌兰】：“第三次，是告诉你，如果你不愿意，我就追你到天涯海角。”",
+                        options: [
+                            { label: "【接受】“那你吹吧。我听着。”", next: "n6_War" },
+                            { label: "【逃避】“乌兰，我是要走的。我给不了你承诺。”", next: "n6_War" }
+                        ]
+                    },
+                    n6_War: {
+                        text: "无论你答应了还是逃避了，乌兰都只是笑笑。\n\n【乌兰】：“没关系。反正我这辈子，就耗在你身上了。”\n\n但战争，从不会因为风花雪月而停止。\n\n日军的搜山队找到了这个隐秘的乌力楞。炮火淹没了宁静。\n\n作为族长，乌兰必须掩护族人撤退；作为列车长，你必须把情报送出去。\n\n你们登上了那辆幽灵列车。为了让最后一节车厢与追兵同归于尽，你们点燃了炸药。\n\n在震耳欲聋的轰鸣中，乌兰用身体死死护住了你。\n\n“燕青，别怕。同去同归。”\n\n就在你闭上眼准备迎接死亡时，你忽然感觉到他身体在变得透明。\n\n他化作漫天光点，周围的战火也像是被按下了暂停键，停在了半空。\n\n一个虚弱而熟悉的声音，在你耳边响起。\n\n【江寒】：“风清雁。梦，该醒了。”",
+                        options: [
+                            { label: "【惊愕】看着碎片剥落，寻找声音的来源。", next: "n7_Truth" }
+                        ]
+                    },
+                    n7_Truth: {
+                        text: "世界如镜面般寸寸碎裂。\n\n你依旧坐在那间点着残烛的屋子里。江寒依旧坐在你对面，只是他的身体，已经开始像乌兰一样，化作光点。\n\n他太虚弱了，连呼吸都在艰难地维持。\n\n【江寒】：“看完了？”\n\n他撑着下巴，看着你，笑得无比凄凉：“这就是我的第十世。乌兰是我在废纸篓里看到的、唯一一个没有被改写的角色。你知不知道，我有多羡慕他？”\n\n“我羡慕他可以光明正大地拥抱你，羡慕他可以为你挡下子弹。而我，只能在这个该死的剧本里，用那些拙劣的话本，用那些算计，来引起你的注意。”\n\n你猛地站起身，想要去抓他的手。却发现自己的手穿过了他的身体。\n\n【江寒】：“别白费力气了。风清雁。”他低下头，看着自己的指尖一点点消散，“我早就死了。在你推开这扇门之前，我的神魂就已经耗尽了。”\n\n“我用最后一点残念，为你编织了这个梦。我求你记住的不是那个阴毒的江寒，而是那个……可以为了你，去死的乌兰。”",
+                        options: [
+                            { label: "【崩溃】“你为什么要这样！你凭什么！”", next: "n8_Final" },
+                            { label: "【痛哭】“江寒……你别走……”", next: "n8_Final" }
+                        ]
+                    },
+                    n8_Final: {
+                        text: "江寒没有回答。他只是用那种极其眷恋的眼神看着你，直到身影彻底化作一片虚无。\n\n你跌坐在椅子上，手边碰到了一个空荡荡的药碗。\n\n那碗药，早就凉透了。是你亲手端给他的。\n\n门外传来风吹树叶的沙沙声。没有江寒，没有云妄。什么都没有。\n\n你终于意识到，他死了。他真的死了。那个算计你、折磨你、在梦里为你挡下一切的混蛋，彻底消失在了这个世界上。\n\n在你面前的，只有那本泛黄的《十生十世》。\n\n那一刻，你脑海中思绪万千。\n\n你看着空荡荡的座位，眼泪模糊了视线。\n\n你对他，到底是什么感情？",
+                        options: [
+                            { label: "【我爱他】纵使他十恶不赦，我也已无法自拔。", next: "end_Love" },
+                            { label: "【我恨他】恨他独留我一人在这个烂摊子，恨他的自以为是。", next: "end_Hate" },
+                            { label: "【爱恨交织】我既恨他的卑劣与算计，又爱他灵魂里的纯粹与惨烈。", next: "end_Mixed" },
+                            { label: "【都不配】爱？恨？他一个废稿，凭什么让我为他落泪。", next: "end_None" }
+                        ]
+                    },
+                    end_Love: {
+                        text: "你颤抖着手，轻轻抚摸着那本话本。\n\n“我爱他。”\n\n在说出这句话的瞬间，你终于崩溃地大哭了起来。\n\n你爱那个在梦里为你做长寿面的乌兰，你也爱那个在现实里为了你步步为营的江寒。你爱那个在榕乡城陪你喝酒的他，你爱那个在问心阵里救下你的他。\n\n你甚至爱他写在话本里，那些既幼稚又拙劣的深情。\n\n你曾是高高在上的圣女，他是见不得光的废稿。命运让你我纠缠，又在最痛的时候将你生生剥离。\n\n“原来我一直都在骗自己。”你抱着那本话本，将脸埋在里面，泣不成声。\n\n你把他的话本妥帖地收在胸口。\n\n从今往后，你会带着他的那一份，走出莲心城，替他看看这片他拼了命也想留下的山水。\n\n你爱他。胜过爱自己。\n\n【隐藏剧情·爱之章 完】",
+                        options: [
+                            { label: "【返回】带着他的爱，继续活下去。", next: "END" }
+                        ]
+                    },
+                    end_Hate: {
+                        text: "“我恨他。”\n\n你用力擦去脸上的泪痕，死死咬着牙，眼底是翻涌的怒意。\n\n你恨他！\n\n恨他自以为是地安排一切，恨他连死了都要用这种残忍的方式在你心里划上一刀。你恨他不说一声就离开，恨他把这烂摊子丢给你一个人承受。\n\n你猛地抓起桌上的话本，想要把它撕碎，扔进火盆里烧个干净。\n\n可当你的手触碰到那泛黄的纸张时，你终究还是停了下来。\n\n“江寒，你这个混蛋。”\n\n你无力地坐在地上，把话本狠狠地砸在地上，却又默默地把它捡了回来。\n\n你恨他，恨到骨子里，恨到无法原谅。\n\n但也正是这份恨意，让你在这世上，再也无法忘记他。\n\n【隐藏剧情·恨之章 完】",
+                        options: [
+                            { label: "【返回】带着对他的恨意，独自前行。", next: "END" }
+                        ]
+                    },
+                    end_Mixed: {
+                        text: "“江寒，你真的是个不折不扣的恶人。”\n\n你低低地笑了起来，笑着笑着，眼角又滑落了一滴泪。\n\n你爱他，也恨他。\n\n你爱他在幻境里像个太阳一样自由坦荡，恨他在现实里像个毒蛇一样阴暗病态。你爱他那一腔哪怕粉身碎骨也要护着你的孤勇，恨他为了这份爱不惜毁掉你的人生，把你困在方寸之间。\n\n你无法完全原谅他，但也做不到彻底遗忘。\n\n你走到门外，找了一处清净的院子，将他的话本埋在了树下。\n\n“这十生十世的纠葛，就让它随风去吧。”\n\n你站起身，拂去裙摆上的泥土。\n\n爱恨交织，如影随形。你带着他留下的一切，继续走在这漫长而又短暂的宿命里。\n\n【隐藏剧情·纠缠之章 完】",
+                        options: [
+                            { label: "【返回】将这一切深埋心底。", next: "END" }
+                        ]
+                    },
+                    end_None: {
+                        text: "你看着空荡荡的椅子，冷笑了一声。\n\n“爱？恨？他都不配。”\n\n你不仅是风清雁，你还是燕青。你经历了那段刻骨铭心的战火，看过了那个叫作乌兰的男人在雪地里燃尽生命。\n\n江寒用一场幻境骗了你，让你以为他还有真心？\n\n“就算你死了，我也不会为你流一滴眼泪。”\n\n你将那本《十生十世》随手丢在桌上，转头就走出了门。\n\n你的世界里，不再有江寒，也不再有云妄。\n\n你走出了那扇门，阳光照在你的脸上。你的眼神冰冷而决绝，再也没有回头看一眼。\n\n风清雁的人生，终究只属于她自己。\n\n【隐藏剧情·无情之章 完】",
+                        options: [
+                            { label: "【返回】从此萧郎是路人。", next: "END" }
+                        ]
+                    }
+                } 
+            },
+        };
+
+        document.getElementById('btn-date').onclick = function(e) {
+            e.stopPropagation(); 
+            petMenu.classList.remove('show'); 
+            actionPanel.style.display = 'none';
+            renderDatePanel(); 
+            const datePanel = document.getElementById('date-panel');
+            datePanel.style.display = 'flex'; 
+            datePanel.classList.add('show');
+        };
+        
+        document.getElementById('date-close-btn').onclick = function() { 
+            document.getElementById('date-panel').classList.remove('show');
+            document.getElementById('date-panel').style.display = 'none';
+        };
+
+        function renderDatePanel() {}        function renderDatePanel() {
+            const listContainer = document.getElementById('date-list-container'); listContainer.innerHTML = '';
+            
+            // 【新增】判断是否解锁了所有9个基础剧情
+            const allBaseStories = ['lv1', 'lv2', 'lv3', 'lv4', 'lv5', 'lv6', 'lv7', 'lv8', 'lv9'];
+            const isAllUnlocked = allBaseStories.every(key => unlockedStories.includes(key));
+            
+            for (const key in DATE_STORIES) {
+                const story = DATE_STORIES[key];
+                
+                // 如果是隐藏剧情，且未全部解锁，则直接跳过不显示，或者显示为未解锁
+                if (key === 'ten_lives') {
+                    if (isAllUnlocked) {
+                        const card = document.createElement('div'); 
+                        card.className = 'date-card'; // 保持解锁状态
+                        card.innerHTML = `
+                            <div class="date-card-info">
+                                <div class="date-card-name" style="color: #d32f2f; font-weight: 900;">${story.name} ✨</div>
+                                <div class="date-card-req">已达成所有回忆</div>
+                            </div>
+                            <button class="date-card-btn" style="background: #d32f2f;" onclick="window.startStory('${key}')">开启</button>
+                        `;
+                        listContainer.appendChild(card);
+                    }
+                    continue; // 跳过后续的常规渲染逻辑
+                }
+
+                const isReached = affection >= story.minAff && affection <= story.maxAff;
+                const isUnlocked = isReached || unlockedStories.includes(key);
+                
+                // 永久解锁逻辑
+                if (isReached && !unlockedStories.includes(key)) { 
+                    unlockedStories.push(key); 
+                    localStorage.setItem('jh_unlocked_stories', JSON.stringify(unlockedStories)); 
+                }
+                
+                const card = document.createElement('div'); card.className = 'date-card' + (isUnlocked ? '' : ' locked');
+                let reqText = `好感度要求：${story.minAff} ~ ${story.maxAff}`;
+                if (story.minAff === -9999) reqText = `好感度要求：${story.maxAff}及以下`;
+                if (story.maxAff === 9999) reqText = `好感度要求：${story.minAff}及以上`;
+
+                card.innerHTML = `
+                    <div class="date-card-info">
+                        <div class="date-card-name">${story.name} ${isUnlocked && !isReached ? '(已解锁)' : ''}</div>
+                        <div class="date-card-req">${reqText}</div>
+                    </div>
+                    <button class="date-card-btn ${isUnlocked ? '' : 'locked'}" ${isUnlocked ? `onclick="window.startStory('${key}')"` : `onclick="showPetDialog('北地笨猪，好感度不够，没法解锁这段回忆哦。')"`}>
+                        ${isUnlocked ? '开始' : '未解锁'}
+                    </button>
+                `;
+                listContainer.appendChild(card);
+            }
+        }
+                window.startStory = function(storyId) {
+            try {
+                clearAllGlobalTimers();
+                clearPopups();
+                pauseAllBGM();
+                
+                // 【新增】播放约会专属BGM
+                const dateBgm = document.getElementById('bgm_date');
+                if (dateBgm) {
+                    dateBgm.currentTime = 0;
+                    dateBgm.play().catch(e => console.log("BGM播放被拦截", e));
+                }
+                
+                // ... 下面的代码不动 ...
+                
+                const dp = document.getElementById('date-panel'); dp.classList.remove('show'); dp.style.display = 'none';
+                document.getElementById('image-layer').style.display = 'none';
+                document.getElementById('proposal-layer').style.display = 'none'; document.getElementById('proposal-layer').classList.remove('show');
+                document.getElementById('letter-layer').style.display = 'none';
+                document.getElementById('ending-layer').style.display = 'none';
+                document.getElementById('hug-modal').classList.remove('show');
+                document.getElementById('pet-widget').style.display = 'none'; 
+                
+                currentStoryId = storyId; 
+                currentNodeId = 'start';
+                
+                const storyLayer = document.getElementById('story-layer');
+                storyLayer.style.display = 'block'; 
+                storyLayer.classList.add('show'); 
+                
+                loadStoryNode();
+            } catch (err) {
+                console.error(err);
+                alert("加载剧情失败：" + err.message);
+            }
+        };
+
+        function loadStoryNode() {
+            if (!currentStoryId || !currentNodeId) return;
+            const story = DATE_STORIES[currentStoryId]; 
+            const node = story.nodes[currentNodeId];
+            if (!node) return;
+            
+            document.getElementById('story-title-text').textContent = story.name;
+            textParagraphs = node.text.split('\n\n').filter(p => p.trim() !== '');
+            currentParaIdx = 0;
+            pendingOptions = node.options || [];
+            document.getElementById('story-options-container').innerHTML = ''; 
+            playCurrentPara();
+        }
+
+        function playCurrentPara() {
+            const textEl = document.getElementById('story-text-content');
+            const hintEl = document.getElementById('story-hint');
+            textEl.textContent = ""; textEl.scrollTop = 0; isTyping = true; hintEl.classList.remove('show');
+            
+            const currentText = textParagraphs[currentParaIdx];
+            if (!currentText) { isTyping = false; showStoryOptions(); return; }
+
+            let charIdx = 0; const speed = 25;
+            clearInterval(typewriterTimer);
+            typewriterTimer = setInterval(() => {
+                if (charIdx < currentText.length) {
+                    textEl.textContent += currentText.charAt(charIdx); charIdx++; textEl.scrollTop = textEl.scrollHeight;
+                } else {
+                    clearInterval(typewriterTimer); isTyping = false; hintEl.classList.add('show');
+                    if (currentParaIdx === textParagraphs.length - 1) showStoryOptions();
+                }
+            }, speed);
+        }
+
+        document.getElementById('story-text-content').onclick = function(e) {
+            e.stopPropagation(); 
+            const hintEl = document.getElementById('story-hint');
+            if (isTyping) {
+                clearInterval(typewriterTimer); 
+                this.textContent = textParagraphs[currentParaIdx]; 
+                isTyping = false; hintEl.classList.add('show');
+                if (currentParaIdx === textParagraphs.length - 1) showStoryOptions();
+            } else {
+                if (currentParaIdx < textParagraphs.length - 1) { 
+                    currentParaIdx++; 
+                    playCurrentPara(); 
+                }
+            }
+        };
+
+        function showStoryOptions() {
+            const optContainer = document.getElementById('story-options-container'); 
+            optContainer.innerHTML = ''; 
+            document.getElementById('story-hint').classList.remove('show');
+            
+            if (!pendingOptions || pendingOptions.length === 0) pendingOptions = [{ label: "【返回】", next: "END" }];
+            
+            pendingOptions.forEach(opt => {
+                const btn = document.createElement('button'); 
+                btn.className = 'story-opt-btn'; 
+                btn.textContent = opt.label;
+                btn.onclick = (e) => {
+                    e.stopPropagation();
+                    if (opt.affChange) { affection += opt.affChange; updateAffectionUI(); }
+                    if (opt.next === 'END') endStory();
+                    else { currentNodeId = opt.next; loadStoryNode(); }
+                };
+                optContainer.appendChild(btn);
+            });
+        }
+
+                function endStory() {
+            clearInterval(typewriterTimer);
+            
+            // 【新增】停止约会专属BGM
+            const dateBgm = document.getElementById('bgm_date');
+            if (dateBgm) {
+                dateBgm.pause();
+                dateBgm.currentTime = 0;
+            }
+
+            // ... 下面的代码不动 ...
+            const storyLayer = document.getElementById('story-layer'); 
+            storyLayer.classList.remove('show'); 
+            safeSetTimeout(() => { storyLayer.style.display = 'none'; }, 500);
+            currentStoryId = null; currentNodeId = null;
+            
+            safeSetTimeout(() => {
+                pauseAllBGM(); clearPopups(); isDarkMode = false; document.body.style.backgroundColor = '#E0F7FA'; initParticles();
+                document.getElementById('pet-widget').style.display = 'none'; 
+                showEnding();
+            }, 600);
+        }
+
+             document.getElementById('story-exit-btn').onclick = function() {
+         endStory(); // 直接调用结束逻辑，跳转到“我爱你，也是真的”
+     };
+
+        // 启动主流程
+        startFlow();
+    </script>
+</body>
+</html>
