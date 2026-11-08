@@ -2586,25 +2586,24 @@ document.getElementById('btn-history-mode').onclick = function(e) {
 };
         // 启动主流程
         startFlow();
-                               // ================= 优雅的 PWA 注册（不打断玩家） =================
+                                       // ================= 完全静默的 PWA 注册 =================
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
                 navigator.serviceWorker.register('sw.js').then((reg) => {
-                    // 当发现代码有新版本时
-                    reg.onupdatefound = () => {
-                        const installingWorker = reg.installing;
-                        installingWorker.onstatechange = () => {
-                            if (installingWorker.state === 'installed') {
+                    // 监听是否有新版本正在安装
+                    reg.addEventListener('updatefound', () => {
+                        const newWorker = reg.installing;
+                        newWorker.addEventListener('statechange', () => {
+                            if (newWorker.state === 'installed') {
                                 if (navigator.serviceWorker.controller) {
-                                    // 发现新版本！但绝对不强制刷新！
-                                    console.log('发现新版本，将在下次打开页面时生效');
-                                    
-                                    // （可选）如果你想提示玩家，可以放一个不打扰的小图标或弹窗
-                                    // 但最好的方式是：什么都不做，等玩家下次退出重进，自动就是新版。
+                                    // 发现新版本，并且已经安装完毕！
+                                    // 这里什么都不做，不加 confirm，不刷新，不打断玩家！
+                                    // 新的 Service Worker 会默默在后台接管。
+                                    console.log('🎉 新版本已就绪，将在下次进入时全自动生效。');
                                 }
                             }
-                        };
-                    };
+                        });
+                    });
                 }).catch((err) => {
                     console.log('PWA 注册失败:', err);
                 });
