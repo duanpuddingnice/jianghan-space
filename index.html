@@ -536,6 +536,11 @@
         let recallCount = parseInt(localStorage.getItem('fengqingyan_recall_count')) || 0;
         let isDarkMode = false;
         const isMobile = window.innerWidth < 768; 
+
+        // 【修复】提前声明这三个状态变量，供开头 visibilitychange 安全访问
+        let currentGamePhase = 'idle';
+        let currentStoryId = null;
+        let currentNodeId = null;
         
         let affection = parseInt(localStorage.getItem('jh_affection')) || 20; 
         let firstRecall = localStorage.getItem('jh_first_recall') === 'true';
@@ -647,7 +652,7 @@
             if (message === "我爱你" || message === "我恨你") {
                 win.innerHTML = `<div class="popup-content" style="font-size: clamp(16px, 4vw, 22px); font-weight: 900; color: ${message==='我爱你'?'#FF69B4':'#8b0000'};">${message}</div>`;
             } else {
-                win.innerHTML = `<div class="popup-title-bar"><span>${isDark ? '警告' : '江寒'}</span><span class="popup-close">✖</span></div><div class="popup-content">${message.replace(/\\n/g, '<br>')}</div>`;
+                win.innerHTML = `<div class="popup-title-bar"><span>${isDark ? '警告' : '江寒'}</span><span class="popup-close">✖</span></div><div class="popup-content">${message.replace(/\n/g, '<br>')}</div>`;
             }
             document.body.appendChild(win);
                         // 👇 新增：点击叉号关闭弹窗
@@ -876,7 +881,7 @@
             "可回望来路，支撑我熬过无数无光长夜的，从来不是恨意，而是你我之间那些细碎却滚烫的温柔过往。\n\n犹记官道初遇，我们针锋相对、互不相让，我笑你是北地笨猪，你嘲我是南蛮蠢驴，吵闹戏谑间，那是我灰暗岁月里难得的鲜活。\n\n犹记荒郊古道，我身无分文、三餐寒苦，唯余一枚冷硬馒头果腹，你掷出十两碎银，嘴硬心软买下我手中吃食，不肯承半分人情。那一瞬间，在永夜般的废稿岁月里，我第一次触摸到一点人间暖意。\n\n也记得我们坐在松树下闲谈山海，聊雪原冰莲，聊南方雾林，聊那些我们都奢望过的、无拘无束的平凡日子。那些时光很短，短得如同一场转瞬就要醒的幻梦。可就是这一点点甜，撑着我熬过无数被遗弃的黑暗。\n\n同根而生，却落得互相煎熬，这是我们逃不开的宿命。我是一页本该归于虚无的废稿，能与你同源相逢，能与你相知相伴，能拥片刻温柔温存，早已耗尽我此生所有的运气。\n\n笔墨落尽终章，宿命尘埃落定。我这一生，从未被世间偏爱半分，唯独遇见你，是我荒芜岁月里唯一的恩赐，是我漆黑长夜中不灭的星火。我不惧神魂散尽，不惧归于虚无，不惧世间无人记我风骨、无人惜我孤苦。我唯一放不下的，从来只有你。\n\n此后人间山河依旧，风月照常，只是再也无我，陪你闲谈风雪、共酌清酒。我无缘陪你奔赴山海辽阔，无缘伴你岁岁烟火寻常，无缘消解你半生风霜、护你一世无忧。唯愿我的岁岁深情、半生成全，能护你余生无羁、一生安然。\n\n人间再无风清砚立于凡尘，可我一腔赤诚未冷，半生痴念未歇，纵使神魂归虚、笔墨归零，我岁岁深情、生生执念，始终独予你，寸心不改，万古不绝。\n\n——风清砚 绝笔"
         ];
 
-        let currentGamePhase = 'idle'; // 记录当前游戏阶段
+       // 记录当前游戏阶段
         let phase2ImgIndex = 1; // 记录海报播放到第几张了
         let isPhase1Converged = false; // 记录爱心是否已经汇聚成型
         let letterPageIndex = 0;       // 记录绝笔信读到了第几页
@@ -933,7 +938,7 @@
         function showEnding() {
             currentGamePhase = 'ending';
             pauseAllBGM();
-            clearPopups(); pauseAllBGM(); document.getElementById('main-bg-mask').style.backgroundColor = 'rgba(224, 247, 250, 0.85)'; isDarkMode = false; initParticles(); document.getElementById('pet-widget').style.display = 'none'; 
+            clearPopups(); clearPopups(); document.getElementById('main-bg-mask').style.backgroundColor = 'rgba(224, 247, 250, 0.85)'; isDarkMode = false; initParticles(); document.getElementById('pet-widget').style.display = 'none'; 
             const endingLayer = document.getElementById('ending-layer'); const endingText = document.getElementById('ending-text'); const memoryBtn = document.getElementById('memory-btn'); const forgetBtn = document.getElementById('forget-btn');
             endingLayer.style.display = 'flex'; safeSetTimeout(() => endingLayer.classList.add('show'), 50);
             endingText.style.color = '#FF8FAB'; endingText.style.textShadow = '0 0 20px rgba(255,143,171,0.4)'; endingText.textContent = "我爱你，也是真的。";
@@ -1055,10 +1060,9 @@
         };
 
         // ================= 8. 约会与文游系统 =================
-        let currentStoryId = null;
+  
         let storyHistory = [];
         let visitedNodes = [];
-        let currentNodeId = null;
         let unlockedStories = JSON.parse(localStorage.getItem('jh_unlocked_stories')) || [];
         
         let typewriterTimer = null;
@@ -2369,10 +2373,6 @@ function applySave(state) {
         currentPage = letterPageIndex;
         renderLetterPage();
     } 
-    else if (currentGamePhase === 'letter_end_love') {
-        document.getElementById('typewriter').style.opacity = '0';
-        document.getElementById('end-btn').click();
-    }
     else if (currentGamePhase === 'cursed') {
         document.getElementById('typewriter').style.opacity = '0';
         startCursedPopups();
@@ -2417,7 +2417,7 @@ function renderSaveSlots() {
     const phaseNames = {
         'idle': '主页初始', 'pet': '主界面', 'phase1': '爱心汇聚', 
         'phase2': '海报轮播', 'dark': '黑化警告', 'proposal': '求婚现场', 'post_proposal': '成亲约定',
-        'letter': '绝笔信', 'letter_end_love': '信后弹窗', 'cursed': '诅咒弹窗', 'war': '爱恨大战', 'ending': '大结局'
+        'letter': '绝笔信', 'cursed': '诅咒弹窗', 'war': '爱恨大战', 'ending': '大结局'
     };
 
     for (let i = 0; i < SAVE_SLOT_COUNT; i++) {
@@ -2552,17 +2552,20 @@ document.getElementById('btn-history-mode').onclick = function(e) {
         // 启动主流程
         startFlow();
                 // ================= 注册 PWA (让网页变 App) =================
+                // ================= 注册 PWA (让网页变 App) =================
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
                 navigator.serviceWorker.register('sw.js').then((reg) => {
-                    // 如果发现服务器上的文件变了，自动帮你刷新！
                     reg.onupdatefound = () => {
                         const installingWorker = reg.installing;
                         installingWorker.onstatechange = () => {
                             if (installingWorker.state === 'installed') {
                                 if (navigator.serviceWorker.controller) {
-                                    console.log('发现新版本，正在自动更新...');
-                                    window.location.reload(); // 自动刷新
+                                    console.log('发现新版本');
+                                    // 【修改点 1】改成 confirm 确认
+                                    if (confirm('检测到新版本，是否刷新？\n\n⚠️ 当前未保存的进度将丢失，建议先存档再刷新。')) {
+                                        window.location.reload();
+                                    }
                                 }
                             }
                         };
@@ -2573,26 +2576,27 @@ document.getElementById('btn-history-mode').onclick = function(e) {
             });
         }
                 // ================= 自动更新检测 =================
+                // ================= 自动更新检测 =================
         setInterval(async () => {
             try {
-                // 获取当前网页头部的最后修改时间
                 const response = await fetch(window.location.href, { method: 'HEAD', cache: 'no-cache' });
                 const lastModified = response.headers.get('Last-Modified');
                 const storedVersion = localStorage.getItem('app_version');
 
-                // 如果服务器上的时间和本地存的不一样，说明你更新了代码
                 if (storedVersion && lastModified && storedVersion !== lastModified) {
+                    // 【修改点 2】先把版本号更新掉，避免玩家点"取消"后每分钟都弹一次
                     localStorage.setItem('app_version', lastModified);
-                    // 弹出提示或直接悄悄刷新
-                    console.log("检测到新版本，自动刷新中...");
-                    window.location.reload(true); 
+                    // 【修改点 3】改成 confirm 确认
+                    if (confirm('检测到新版本，是否刷新？\n\n⚠️ 当前未保存的进度将丢失，建议先存档再刷新。')) {
+                        window.location.reload();
+                    }
                 } else if (!storedVersion && lastModified) {
                     localStorage.setItem('app_version', lastModified);
                 }
             } catch (e) {
                 // 离线或报错时忽略
             }
-        }, 60000); // 每分钟检查一次
+        }, 60000); // 每分钟检查一次 // 每分钟检查一次
     </script>
 </body>
 </html>
