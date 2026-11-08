@@ -204,7 +204,7 @@
             border-radius: 15px; 
             padding: 20px; 
             box-shadow: 0 10px 40px rgba(0,0,0,0.3); 
-            z-index: 999999999; /* 👈 层级拉到最高，绝对盖住其它按钮 */
+            z-index: 999999; /* 👈 层级拉到最高，绝对盖住其它按钮 */
             display: none; 
             flex-direction: column; 
             pointer-events: auto; 
@@ -5312,33 +5312,34 @@ document.getElementById('btn-leaderboard').onclick = function(e) {
                 }
             };
         })();
-                // ================= 终极防干扰：约会面板关闭逻辑 =================
-        const btnDateClose = document.getElementById('date-close-btn');
-        if (btnDateClose) {
-            // 改用 pointerdown，手指按下瞬间就触发，无视任何滑动延迟和干扰！
-            btnDateClose.addEventListener('pointerdown', function(e) {
-                e.preventDefault(); // 阻止所有后续的鼠标/触摸事件，防止穿透到背后的元素
-                e.stopPropagation(); // 阻止冒泡
+                        // ================= 终极暴力反拦截：约会面板关闭逻辑 =================
+        const datePanelEl = document.getElementById('date-panel');
+        
+        // 使用 capture: true，在事件到达任何透明遮罩前直接拦截
+        document.addEventListener('touchstart', function(e) {
+            // 如果点击的是关闭按钮，或者直接在关闭按钮区域内
+            if (e.target && (e.target.id === 'date-close-btn' || e.target.closest('#date-close-btn'))) {
+                e.preventDefault(); // 阻止所有后续行为（滑动、长按、穿透）
+                e.stopPropagation();
                 
-                const datePanel = document.getElementById('date-panel');
-                if (datePanel) {
-                    datePanel.classList.remove('show');
-                    datePanel.style.display = 'none';
-                }
-            });
-        }
-
-        // 附赠：点击面板外部（背景）也能安全关闭，同样防干扰
-        document.addEventListener('pointerdown', function(e) {
-            const datePanel = document.getElementById('date-panel');
-            // 如果面板是打开的，且点击的不是面板内部，也不是打开按钮
-            if (datePanel && datePanel.style.display === 'flex') {
-                if (!datePanel.contains(e.target) && e.target.id !== 'btn-date') {
-                    datePanel.classList.remove('show');
-                    datePanel.style.display = 'none';
+                if (datePanelEl) {
+                    datePanelEl.classList.remove('show');
+                    datePanelEl.style.display = 'none'; // 强制消失
                 }
             }
-        });
+        }, { capture: true, passive: false }); // capture: true 是核心！passive: false 允许 preventDefault
+
+        // 电脑端保留 click 兼容
+        document.addEventListener('click', function(e) {
+            if (e.target && (e.target.id === 'date-close-btn' || e.target.closest('#date-close-btn'))) {
+                e.preventDefault();
+                e.stopPropagation();
+                if (datePanelEl) {
+                    datePanelEl.classList.remove('show');
+                    datePanelEl.style.display = 'none';
+                }
+            }
+        }, true);
 </script>
 </body>
 </html>
