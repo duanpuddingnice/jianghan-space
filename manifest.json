@@ -1,0 +1,22 @@
+{
+  "name": "风清砚的小家",
+  "short_name": "风清砚",
+  "start_url": "./index.html",
+  "display": "fullscreen",
+  "background_color": "#E0F7FA",
+  "theme_color": "#FFB7C5",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

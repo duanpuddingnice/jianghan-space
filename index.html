@@ -3,12 +3,20 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>江寒的专属空间</title>
+    <title>风清砚的小家</title>
+        <link rel="manifest" href="manifest.json">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="apple-touch-icon" href="icon-192.png">
     <style>
         * { box-sizing: border-box; }
                body, html {
             margin: 0; padding: 0; width: 100%; height: 100%;
-            background-color: #E0F7FA; overflow: hidden;
+                        background-image: url('date_bg.jpg');
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+            background-color: transparent; overflow: hidden;
             font-family: 'Microsoft YaHei', sans-serif;
             touch-action: none;
             transition: background-color 1.5s;
@@ -31,6 +39,11 @@
             pointer-events: none !important;
         }
         /* ================== 原流程弹窗 ================== */
+                #main-bg-mask {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background-color: rgba(224, 247, 250, 0.85); /* 默认的浅蓝蒙层，保证文字清晰 */
+            z-index: 0; transition: background-color 1.5s; pointer-events: none;
+        }
                 .popup-window {
             position: absolute; background-color: #FFB7C5; border: 1px solid rgba(255,255,255,0.8); border-radius: 8px;
             box-shadow: 0 6px 20px rgba(0,0,0,0.25); display: flex; flex-direction: column; z-index: 10;
@@ -350,6 +363,7 @@
     <audio id="bgm3" loop preload="none"><source src="3.mp3" type="audio/mpeg"></audio>
     <audio id="bgm_date" loop preload="none"><source src="kiku.mp3" type="audio/mpeg"></audio>
 
+    <div id="main-bg-mask"></div>
     <canvas id="bg-canvas"></canvas>
     <div id="typewriter"></div>
     <div id="btn-phase2" class="hidden-trigger">❤</div>
@@ -456,7 +470,43 @@
 
     <script>
                 // 【新增】全局禁止右键/长按菜单
-        document.addEventListener('contextmenu', function(e) {
+                // 【新增】切出页面时暂停所有音乐
+                // 【新增】切出页面时暂停所有音乐，切回时恢复当前阶段对应的 BGM
+        document.addEventListener('visibilitychange', () => {
+            const bgms = ['bgm1', 'bgm2', 'bgm3', 'bgm_date'];
+            if (document.hidden) {
+                // 切出：暂停所有
+                bgms.forEach(id => {
+                    const audio = document.getElementById(id);
+                    if (audio) audio.pause();
+                });
+            } else {
+                // 切回：判断当前在哪里
+                // 1. 如果在约会文游中
+                if (currentStoryId !== null) {
+                    const dateBgm = document.getElementById('bgm_date');
+                    if (dateBgm) dateBgm.play().catch(e => {});
+                    return;
+                }
+                
+                // 2. 如果在原流程的各个阶段
+                let bgmToPlay = null;
+                if (currentGamePhase === 'phase1' || currentGamePhase === 'phase1_done') {
+                    bgmToPlay = 'bgm1';
+                } else if (['phase2', 'dark', 'proposal', 'post_proposal'].includes(currentGamePhase)) {
+                    bgmToPlay = 'bgm2';
+                } else if (currentGamePhase === 'letter' || currentGamePhase === 'letter_end_love') {
+                    bgmToPlay = 'bgm3';
+                }
+                // (cursed、war、ending、pet 阶段原本就是没有BGM的，所以保持安静即可)
+
+                if (bgmToPlay) {
+                    const audio = document.getElementById(bgmToPlay);
+                    if (audio) audio.play().catch(e => console.log('浏览器拦截了自动播放，请点击屏幕'));
+                }
+            }
+        });
+                document.addEventListener('contextmenu', function(e) {
             e.preventDefault();
         });
         document.addEventListener('selectstart', function(e) {
@@ -506,7 +556,7 @@
         function resize() { width = canvas.width = window.innerWidth; height = canvas.height = window.innerHeight; }
         window.addEventListener('resize', resize); resize();
 
-        class LotusParticle {
+                class LotusParticle {
             constructor() { this.reset(true); }
             reset(init = false) {
                 this.x = Math.random() * width; this.y = init ? Math.random() * height : -20;
@@ -515,8 +565,30 @@
                 this.rotSpeed = (Math.random() - 0.5) * 0.03;
                 this.color = isDarkMode ? darkColors[Math.floor(Math.random() * darkColors.length)] : lotusColors[Math.floor(Math.random() * lotusColors.length)];
             }
-            update() { this.y += this.speedY; this.x += Math.sin(this.y / 60) * 0.8 + this.speedX; this.angle += this.rotSpeed; if (this.y > height + 20) this.reset(); }
-            draw() { ctx.save(); ctx.translate(this.x, this.y); ctx.rotate(this.angle); ctx.fillStyle = this.color; ctx.beginPath(); ctx.moveTo(0, -this.size); ctx.quadraticCurveTo(this.size * 0.8, -this.size * 0.5, 0, this.size); ctx.quadraticCurveTo(-this.size * 0.8, -this.size * 0.5, 0, -this.size); ctx.fill(); ctx.restore(); }
+            update() { 
+                this.y += this.speedY; 
+                this.x += Math.sin(this.y / 60) * 0.8 + this.speedX; 
+                this.angle += this.rotSpeed; 
+                if (this.y > height + 20) this.reset(); 
+            }
+            draw() { 
+                ctx.save(); 
+                ctx.globalAlpha = 0.85; 
+                ctx.translate(this.x, this.y); 
+                ctx.rotate(this.angle); 
+                ctx.fillStyle = this.color; 
+                ctx.beginPath(); 
+                // 外围大花瓣
+                ctx.moveTo(0, -this.size); 
+                ctx.quadraticCurveTo(this.size * 1.2, -this.size * 0.2, 0, this.size); 
+                ctx.quadraticCurveTo(-this.size * 1.2, -this.size * 0.2, 0, -this.size);
+                // 内部小花瓣
+                ctx.moveTo(0, -this.size * 0.6); 
+                ctx.quadraticCurveTo(this.size * 0.6, this.size * 0.2, 0, this.size * 0.8); 
+                ctx.quadraticCurveTo(-this.size * 0.6, this.size * 0.2, 0, -this.size * 0.6);
+                ctx.fill(); 
+                ctx.restore(); 
+            }
         }
         function initParticles() { particles = []; for (let i = 0; i < 120; i++) particles.push(new LotusParticle()); }
         function animateParticles() { ctx.clearRect(0, 0, width, height); particles.forEach(p => { p.update(); p.draw(); }); requestAnimationFrame(animateParticles); }
@@ -597,7 +669,7 @@
         // ================= 3. 主流程控制 =================
         window.startFlow = function() {
             currentGamePhase = 'idle';
-            pauseAllBGM(); clearPopups(); isDarkMode = false; document.body.style.backgroundColor = '#E0F7FA'; initParticles();
+            pauseAllBGM(); clearPopups(); isDarkMode = false; document.getElementById('main-bg-mask').style.backgroundColor = 'rgba(224, 247, 250, 0.85)'; initParticles();
             
             document.getElementById('date-panel').classList.remove('show');
             document.getElementById('date-panel').style.display = 'none'; 
@@ -685,7 +757,7 @@
             clearPopups();
 
             pauseAllBGM(); document.getElementById('bgm2').play().catch(e => console.log(e));
-            isDarkMode = true; document.body.style.backgroundColor = '#1a1a1a'; initParticles();
+            isDarkMode = true; document.getElementById('main-bg-mask').style.backgroundColor = 'rgba(26, 26, 26, 0.88)'; initParticles();
             
             document.getElementById('pet-widget').style.display = 'none'; 
             document.getElementById('pet-menu').classList.remove('show'); 
@@ -758,12 +830,38 @@
             };
         }
 
-        document.getElementById('btn-phase3').onclick = function() {
+                document.getElementById('btn-phase3').onclick = function() {
             currentGamePhase = 'letter'; currentPage = 0;
-            this.classList.remove('show'); document.getElementById('typewriter').style.opacity = '0'; pauseAllBGM(); document.getElementById('bgm3').play().catch(e => console.log(e));
+            this.classList.remove('show'); 
+            pauseAllBGM(); 
+            document.getElementById('bgm3').play().catch(e => console.log(e)); // 3.mp3 一直响直到结局
             document.getElementById('pet-widget').style.display = 'none';
-            document.getElementById('letter-layer').style.display = 'flex'; safeSetTimeout(() => document.getElementById('letter-layer').classList.add('show'), 50);
-            currentPage = 0; renderLetterPage();
+            
+            // 【新增】先隐藏信件层，用打字机显示提示
+            document.getElementById('letter-layer').style.display = 'none';
+            
+            const tw = document.getElementById('typewriter');
+            tw.style.opacity = '1';
+            tw.textContent = "";
+            let textStr = "风清雁，这里有一封你的信。";
+            let charIdx = 0;
+            
+            function typeLetterHint() {
+                if (charIdx < textStr.length) {
+                    tw.textContent += textStr.charAt(charIdx);
+                    charIdx++;
+                    safeSetTimeout(typeLetterHint, 120);
+                } else {
+                    // 提示打完后，等 1.5 秒再把信掏出来
+                    safeSetTimeout(() => {
+                        tw.style.opacity = '0';
+                        document.getElementById('letter-layer').style.display = 'flex'; 
+                        safeSetTimeout(() => document.getElementById('letter-layer').classList.add('show'), 50);
+                        renderLetterPage();
+                    }, 1500);
+                }
+            }
+            typeLetterHint();
         };
 
         const letterPages = [
@@ -796,19 +894,19 @@
         document.getElementById('end-btn').onclick = function() {
             currentGamePhase = 'letter_end_love';
             document.getElementById('letter-layer').classList.remove('show'); safeSetTimeout(() => document.getElementById('letter-layer').style.display = 'none', 1000);
-            pauseAllBGM(); isDarkMode = false; document.body.style.backgroundColor = '#E0F7FA'; initParticles();
+            pauseAllBGM(); isDarkMode = false; document.getElementById('main-bg-mask').style.backgroundColor = 'rgba(224, 247, 250, 0.85)'; initParticles();
             let count = 0; const loveInterval = safeSetInterval(() => { createPopup(loveMessages[Math.floor(Math.random() * loveMessages.length)]); count++; if (count >= 20) { clearInterval(loveInterval); safeSetTimeout(startCursedPopups, 1500); } }, 150);
         };
 
         function startCursedPopups() {
             currentGamePhase = 'cursed';
-            clearPopups(); isDarkMode = true; document.body.style.backgroundColor = '#1a1a1a'; initParticles(); 
+            clearPopups(); isDarkMode = true; document.getElementById('main-bg-mask').style.backgroundColor = 'rgba(26, 26, 26, 0.88)'; initParticles(); 
             let count = 0; const cursedInterval = safeSetInterval(() => { createPopup(darkMessages[Math.floor(Math.random() * darkMessages.length)], true); count++; if (count >= 20) { clearInterval(cursedInterval); safeSetTimeout(startLoveHateWar, 1500); } }, 150);
         }
 
         function startLoveHateWar() {
             currentGamePhase = 'war';
-            clearPopups(); document.body.style.backgroundColor = '#1a1a1a'; isDarkMode = true; initParticles();
+            clearPopups(); document.getElementById('main-bg-mask').style.backgroundColor = 'rgba(26, 26, 26, 0.88)'; isDarkMode = true; initParticles();
             let totalPopups = 250; let current = 0;
             function spawnPopup() {
                 if (current >= totalPopups) { safeSetTimeout(showEnding, 2000); return; }
@@ -823,13 +921,13 @@
 
         function showEnding() {
             currentGamePhase = 'ending';
-            clearPopups(); pauseAllBGM(); document.body.style.backgroundColor = '#E0F7FA'; isDarkMode = false; initParticles(); document.getElementById('pet-widget').style.display = 'none'; 
+            clearPopups(); pauseAllBGM(); document.getElementById('main-bg-mask').style.backgroundColor = 'rgba(224, 247, 250, 0.85)'; isDarkMode = false; initParticles(); document.getElementById('pet-widget').style.display = 'none'; 
             const endingLayer = document.getElementById('ending-layer'); const endingText = document.getElementById('ending-text'); const memoryBtn = document.getElementById('memory-btn'); const forgetBtn = document.getElementById('forget-btn');
             endingLayer.style.display = 'flex'; safeSetTimeout(() => endingLayer.classList.add('show'), 50);
             endingText.style.color = '#FF8FAB'; endingText.style.textShadow = '0 0 20px rgba(255,143,171,0.4)'; endingText.textContent = "我爱你，也是真的。";
             memoryBtn.style.display = 'block'; forgetBtn.style.display = 'block';
             const handleRecallClick = () => {
-                document.body.style.backgroundColor = '#E0F7FA'; endingText.style.color = '#FF8FAB'; endingText.style.textShadow = '0 0 20px rgba(255,143,171,0.4)'; endingText.textContent = ""; memoryBtn.style.display = 'none'; forgetBtn.style.display = 'none';
+                document.getElementById('main-bg-mask').style.backgroundColor = 'rgba(224, 247, 250, 0.85)'; endingText.style.color = '#FF8FAB'; endingText.style.textShadow = '0 0 20px rgba(255,143,171,0.4)'; endingText.textContent = ""; memoryBtn.style.display = 'none'; forgetBtn.style.display = 'none';
                 if (!firstRecall) {
                     endingText.textContent = "既然你这么想我……\n你还记得我和你说过一块姜切成四块会变成什么吗？";
                     safeSetTimeout(() => { endingText.innerHTML = `<button class="special-btn" onclick="answerJiang('yes')">记得</button> &nbsp;&nbsp; <button class="special-btn" onclick="answerJiang('no')">不记得</button>`; }, 2000);
@@ -837,7 +935,7 @@
             };
             memoryBtn.onclick = function() { recallCount++; localStorage.setItem('fengqingyan_recall_count', recallCount); handleRecallClick(); };
             forgetBtn.onclick = function() { 
-                memoryBtn.style.display = 'none'; forgetBtn.style.display = 'none'; document.body.style.backgroundColor = '#000000'; endingText.style.color = '#ff0000'; endingText.style.textShadow = '0 0 20px #ff0000'; endingText.textContent = "风清雁，你生生世世都忘不了我,\n别白费力气了.\n不过可以多想想我.";
+                memoryBtn.style.display = 'none'; forgetBtn.style.display = 'none'; document.getElementById('main-bg-mask').style.backgroundColor = 'rgba(0, 0, 0, 0.95)'; endingText.style.color = '#ff0000'; endingText.style.textShadow = '0 0 20px #ff0000'; endingText.textContent = "风清雁，你生生世世都忘不了我,\n别白费力气了.\n不过可以多想想我.";
                 pauseAllBGM(); safeSetTimeout(handleRecallClick, 3500);
             };
         }
@@ -854,7 +952,7 @@
         function resumeMainLoopFromEnd() {
             currentGamePhase = 'pet';
             document.getElementById('ending-layer').classList.remove('show');
-            safeSetTimeout(() => { document.getElementById('ending-layer').style.display = 'none'; document.getElementById('ending-text').style.color = '#FF8FAB'; document.getElementById('ending-text').style.textShadow = '0 0 20px rgba(255,143,171,0.4)'; document.body.style.backgroundColor = '#E0F7FA'; }, 1000);
+            safeSetTimeout(() => { document.getElementById('ending-layer').style.display = 'none'; document.getElementById('ending-text').style.color = '#FF8FAB'; document.getElementById('ending-text').style.textShadow = '0 0 20px rgba(255,143,171,0.4)'; document.getElementById('main-bg-mask').style.backgroundColor = 'rgba(224, 247, 250, 0.85)'; }, 1000);
             activatePetWidget(); startFlow();
         }
 
@@ -2076,7 +2174,7 @@ visitedNodes = []; // 清空已访问节点
             currentStoryId = null; currentNodeId = null;
             
             safeSetTimeout(() => {
-                pauseAllBGM(); clearPopups(); isDarkMode = false; document.body.style.backgroundColor = '#E0F7FA'; initParticles();
+                pauseAllBGM(); clearPopups(); isDarkMode = false; document.getElementById('main-bg-mask').style.backgroundColor = 'rgba(224, 247, 250, 0.85)'; initParticles();
                 document.getElementById('pet-widget').style.display = 'none'; 
                 showEnding();
             }, 600);
@@ -2155,7 +2253,7 @@ function applySave(state) {
     if (oldPopup) oldPopup.remove();
 
     isDarkMode = false;
-    document.body.style.backgroundColor = '#E0F7FA';
+    document.getElementById('main-bg-mask').style.backgroundColor = 'rgba(224, 247, 250, 0.85)';
     initParticles();
 
     // 3. 如果是文游存档
@@ -2434,6 +2532,48 @@ document.getElementById('btn-history-mode').onclick = function(e) {
 };
         // 启动主流程
         startFlow();
+                // ================= 注册 PWA (让网页变 App) =================
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('sw.js').then((reg) => {
+                    // 如果发现服务器上的文件变了，自动帮你刷新！
+                    reg.onupdatefound = () => {
+                        const installingWorker = reg.installing;
+                        installingWorker.onstatechange = () => {
+                            if (installingWorker.state === 'installed') {
+                                if (navigator.serviceWorker.controller) {
+                                    console.log('发现新版本，正在自动更新...');
+                                    window.location.reload(); // 自动刷新
+                                }
+                            }
+                        };
+                    };
+                }).catch((err) => {
+                    console.log('PWA 注册失败:', err);
+                });
+            });
+        }
+                // ================= 自动更新检测 =================
+        setInterval(async () => {
+            try {
+                // 获取当前网页头部的最后修改时间
+                const response = await fetch(window.location.href, { method: 'HEAD', cache: 'no-store' });
+                const lastModified = response.headers.get('Last-Modified');
+                const storedVersion = localStorage.getItem('app_version');
+
+                // 如果服务器上的时间和本地存的不一样，说明你更新了代码
+                if (storedVersion && lastModified && storedVersion !== lastModified) {
+                    localStorage.setItem('app_version', lastModified);
+                    // 弹出提示或直接悄悄刷新
+                    console.log("检测到新版本，自动刷新中...");
+                    window.location.reload(true); 
+                } else if (!storedVersion && lastModified) {
+                    localStorage.setItem('app_version', lastModified);
+                }
+            } catch (e) {
+                // 离线或报错时忽略
+            }
+        }, 60000); // 每分钟检查一次
     </script>
 </body>
 </html>
