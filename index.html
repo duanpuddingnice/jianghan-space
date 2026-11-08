@@ -49,14 +49,13 @@
             pointer-events: none !important;
         }
         /* ================== 原流程弹窗 ================== */
-                        #main-bg-mask {
+                             #main-bg-mask {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             z-index: 0; 
-            /* 【修改】使用平滑的渐变过渡，替代死板的一闪而过的纯色 */
             transition: background 2s ease; 
             pointer-events: none;
-            /* 默认是白天的浅蓝白渐变 */
-            background: linear-gradient(to bottom, rgba(224, 247, 250, 0.85), rgba(255, 255, 255, 0.6));
+            /* 👇 调低了透明度，让背景图透出来 👇 */
+            background: linear-gradient(to bottom, rgba(224, 247, 250, 0.3), rgba(255, 255, 255, 0.1));
         }
               .popup-window {
             position: absolute; background-color: #FFB7C5; border: 1px solid rgba(255,255,255,0.8); border-radius: 8px;
@@ -1313,9 +1312,9 @@
             let isPaused = false;
 
             const gradients = {
-                'day': 'linear-gradient(to bottom, rgba(224, 247, 250, 0.85), rgba(255, 255, 255, 0.6))',
-                'dusk': 'linear-gradient(to bottom, rgba(255, 183, 197, 0.75), rgba(255, 140, 0, 0.65))',
-                'night': 'linear-gradient(to bottom, rgba(15, 15, 25, 0.95), rgba(25, 25, 45, 0.85))'
+                'day': 'linear-gradient(to bottom, rgba(224, 247, 250, 0.3), rgba(255, 255, 255, 0.1))',
+                'dusk': 'linear-gradient(to bottom, rgba(255, 183, 197, 0.5), rgba(255, 140, 0, 0.4))',
+                'night': 'linear-gradient(to bottom, rgba(15, 15, 25, 0.85), rgba(25, 25, 45, 0.7))'
             };
 
             function resize() { width = canvas.width = window.innerWidth; height = canvas.height = window.innerHeight; }
@@ -1358,7 +1357,7 @@
                 }
                 draw() { 
                     ctx.save(); 
-                    ctx.globalAlpha = 0.8; 
+                    ctx.globalAlpha = 1.0; 
                     ctx.translate(this.x, this.y); 
                     ctx.rotate(this.angle); 
                     ctx.fillStyle = this.color; 
@@ -1525,7 +1524,7 @@
             // 【新增】恢复天气粒子
             window.WeatherSystem.resume();
             currentGamePhase = 'idle';
-            pauseAllBGM(); clearPopups(); isDarkMode = false; document.getElementById('main-bg-mask').style.backgroundColor = 'rgba(224, 247, 250, 0.85)'; 
+            pauseAllBGM(); clearPopups(); isDarkMode = false; window.WeatherSystem.setWeather('day'); 
             
             document.getElementById('date-panel').classList.remove('show');
             document.getElementById('date-panel').style.display = 'none'; 
@@ -1613,7 +1612,7 @@
             clearPopups();
 
             pauseAllBGM(); document.getElementById('bgm2').play().catch(e => console.log(e));
-            isDarkMode = true; document.getElementById('main-bg-mask').style.backgroundColor = 'rgba(26, 26, 26, 0.88)'; 
+            isDarkMode = true; document.getElementById('main-bg-mask').style.background = 'linear-gradient(to bottom, rgba(15, 15, 25, 0.85), rgba(25, 25, 45, 0.7))'; 
             
             document.getElementById('pet-widget').style.display = 'none'; 
             document.getElementById('pet-menu').classList.remove('show'); 
@@ -1755,7 +1754,7 @@
     // ❌ 删掉 pauseAllBGM(); 让 bgm3 继续播放！
     
     isDarkMode = false; 
-    document.getElementById('main-bg-mask').style.backgroundColor = 'rgba(224, 247, 250, 0.85)'; 
+    window.WeatherSystem.setWeather('day'); 
     
     let count = 0; 
     const loveInterval = safeSetInterval(() => { 
@@ -1767,13 +1766,13 @@
 
         function startCursedPopups() {
             currentGamePhase = 'cursed';
-            clearPopups(); isDarkMode = true; document.getElementById('main-bg-mask').style.backgroundColor = 'rgba(26, 26, 26, 0.88)';  
+            clearPopups(); isDarkMode = true; document.getElementById('main-bg-mask').style.background = 'linear-gradient(to bottom, rgba(15, 15, 25, 0.85), rgba(25, 25, 45, 0.7))';  
             let count = 0; const cursedInterval = safeSetInterval(() => { createPopup(darkMessages[Math.floor(Math.random() * darkMessages.length)], true); count++; if (count >= 20) { clearInterval(cursedInterval); safeSetTimeout(startLoveHateWar, 1500); } }, 150);
         }
 
         function startLoveHateWar() {
             currentGamePhase = 'war';
-            clearPopups(); document.getElementById('main-bg-mask').style.backgroundColor = 'rgba(26, 26, 26, 0.88)'; isDarkMode = true; 
+            clearPopups(); document.getElementById('main-bg-mask').style.background = 'linear-gradient(to bottom, rgba(15, 15, 25, 0.85), rgba(25, 25, 45, 0.7))'; isDarkMode = true; 
             let totalPopups = 250; let current = 0;
             function spawnPopup() {
                 if (current >= totalPopups) { safeSetTimeout(showEnding, 2000); return; }
@@ -1789,13 +1788,13 @@
         function showEnding() {
             currentGamePhase = 'ending';
             pauseAllBGM();
-            clearPopups(); document.getElementById('main-bg-mask').style.backgroundColor = 'rgba(224, 247, 250, 0.85)'; isDarkMode = false;  document.getElementById('pet-widget').style.display = 'none'; 
+            clearPopups(); window.WeatherSystem.setWeather('day'); isDarkMode = false;  document.getElementById('pet-widget').style.display = 'none'; 
             const endingLayer = document.getElementById('ending-layer'); const endingText = document.getElementById('ending-text'); const memoryBtn = document.getElementById('memory-btn'); const forgetBtn = document.getElementById('forget-btn');
             endingLayer.style.display = 'flex'; safeSetTimeout(() => endingLayer.classList.add('show'), 50);
             endingText.style.color = '#FF8FAB'; endingText.style.textShadow = '0 0 20px rgba(255,143,171,0.4)'; endingText.textContent = "我爱你，也是真的。";
             memoryBtn.style.display = 'block'; forgetBtn.style.display = 'block';
             const handleRecallClick = () => {
-                document.getElementById('main-bg-mask').style.backgroundColor = 'rgba(224, 247, 250, 0.85)'; endingText.style.color = '#FF8FAB'; endingText.style.textShadow = '0 0 20px rgba(255,143,171,0.4)'; endingText.textContent = ""; memoryBtn.style.display = 'none'; forgetBtn.style.display = 'none';
+                window.WeatherSystem.setWeather('day'); endingText.style.color = '#FF8FAB'; endingText.style.textShadow = '0 0 20px rgba(255,143,171,0.4)'; endingText.textContent = ""; memoryBtn.style.display = 'none'; forgetBtn.style.display = 'none';
                 if (!firstRecall) {
                     endingText.textContent = "既然你这么想我……\n你还记得我和你说过一块姜切成四块会变成什么吗？";
                     safeSetTimeout(() => { endingText.innerHTML = `<button class="special-btn" onclick="answerJiang('yes')">记得</button> &nbsp;&nbsp; <button class="special-btn" onclick="answerJiang('no')">不记得</button>`; }, 2000);
@@ -1827,7 +1826,7 @@
         function resumeMainLoopFromEnd() {
             currentGamePhase = 'pet';
             document.getElementById('ending-layer').classList.remove('show');
-            safeSetTimeout(() => { document.getElementById('ending-layer').style.display = 'none'; document.getElementById('ending-text').style.color = '#FF8FAB'; document.getElementById('ending-text').style.textShadow = '0 0 20px rgba(255,143,171,0.4)'; document.getElementById('main-bg-mask').style.backgroundColor = 'rgba(224, 247, 250, 0.85)'; }, 1000);
+            safeSetTimeout(() => { document.getElementById('ending-layer').style.display = 'none'; document.getElementById('ending-text').style.color = '#FF8FAB'; document.getElementById('ending-text').style.textShadow = '0 0 20px rgba(255,143,171,0.4)'; window.WeatherSystem.setWeather('day'); }, 1000);
             activatePetWidget(); startFlow();
             
         }
@@ -3109,7 +3108,7 @@ visitedNodes = []; // 清空已访问节点
             currentStoryId = null; currentNodeId = null;
             
             safeSetTimeout(() => {
-                pauseAllBGM(); clearPopups(); isDarkMode = false; document.getElementById('main-bg-mask').style.backgroundColor = 'rgba(224, 247, 250, 0.85)'; 
+                pauseAllBGM(); clearPopups(); isDarkMode = false; window.WeatherSystem.setWeather('day'); 
                 document.getElementById('pet-widget').style.display = 'none'; 
                 showEnding();
             }, 600);
@@ -3188,7 +3187,7 @@ function applySave(state) {
     if (oldPopup) oldPopup.remove();
 
     isDarkMode = false;
-    document.getElementById('main-bg-mask').style.backgroundColor = 'rgba(224, 247, 250, 0.85)';
+    window.WeatherSystem.setWeather('day');
     
 
     // 3. 如果是文游存档
@@ -3521,9 +3520,9 @@ window.JumpGame = (function() {
     let width, height;
     let isPlaying = false;
     
-    const R_X = 45;      // 菱形半宽
-    const R_Y = 22;      // 菱形半高
-    const H = 35;        // 方块厚度
+    const R_X = 75;      // 菱形半宽（原45，放大）
+    const R_Y = 37;      // 菱形半高（原22，放大）
+    const H = 55;        // 方块厚度（原35，变厚）
     let SKIN_COLOR = localStorage.getItem('jh_jump_skin') || '#FF69B4'; 
     let playerEmoji = localStorage.getItem('jh_jump_emoji') || '🐷';
 const EMOJI_LIST = ['🐷', '🐰', '🐼', '🦊', '🐱', '🐶', '🐸', '🐵'];
