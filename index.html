@@ -629,6 +629,7 @@
         @keyframes dotPulse {
             0% { transform: scale(1); }
             100% { transform: scale(1.3); }
+        } /* 👈 补上这个右括号！ */
                     /* ================== 好感度飘字系统 ================== */
         .aff-float {
             position: fixed;
@@ -688,7 +689,6 @@
             display: flex; flex-direction: column; gap: 15px;
         }
         .gallery-detail-text { font-size: 16px; color: #333; line-height: 1.8; white-space: pre-wrap; text-align: justify; }
-        }
                         /* ================== 抓娃娃机 (2.5D版) ================== */
         #game-claw-layer {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
@@ -769,8 +769,7 @@
         .claw-btn:active { transform: scale(0.9); }
         .claw-btn:disabled { background: #999; box-shadow: none; cursor: not-allowed; }
         
-        #exit-claw-btn {
-            /* ================== 抓娃娃手感与提示优化 ================== */
+               /* ================== 抓娃娃手感与提示优化 ================== */
         .claw-entity {
             transition: left 0.15s ease-out, transform 0.15s ease-out !important;
         }
@@ -783,16 +782,8 @@
         }
         .coin-toast.up { top: 60px; opacity: 0; }
         .coin-toast.err { color: #FF6B6B; box-shadow: 0 4px 15px rgba(255,107,107,0.3); }
-/* 全局金币浮窗提示 */
-.coin-toast {
-    position: fixed; top: 100px; left: 50%; transform: translateX(-50%);
-    background: rgba(0,0,0,0.85); color: #FFD700; padding: 10px 22px;
-    border-radius: 20px; font-weight: bold; font-size: 16px;
-    z-index: 999999999; pointer-events: none; opacity: 1;
-    transition: opacity 0.4s, top 0.4s; box-shadow: 0 4px 15px rgba(255,215,0,0.3);
-}
-.coin-toast.up { top: 60px; opacity: 0; }
-.coin-toast.err { color: #FF6B6B; box-shadow: 0 4px 15px rgba(255,107,107,0.3); }
+
+        #exit-claw-btn {
             position: absolute; top: 20px; right: 20px; background: transparent;
             border: 2px solid #888; color: #fff; padding: 8px 15px; border-radius: 20px; font-weight: bold; cursor: pointer;
         }
@@ -900,13 +891,18 @@
 
 <!-- 新增：存档遮罩 -->
 <div id="save-menu-overlay"></div>
-
-<!-- 新增：存档菜单按钮 -->
+<!-- 存档菜单按钮 -->
 <div id="save-menu-btn">☰</div>
-<!-- 成就菜单按钮 -->
-<div id="achieve-menu-btn" style="position: absolute; top: 120px; right: 20px; width: 42px; height: 42px; background: rgba(255, 255, 255, 0.92); border: 2px solid #FFB7C5; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 20px; cursor: pointer; z-index: 100000000; box-shadow: 0 2px 12px rgba(0,0,0,0.2); transition: transform 0.15s;">🏆<span id="achieve-red-dot" class="red-dot"></span></div>
-<!-- 回忆长廊按钮 -->
-<div id="gallery-menu-btn" style="position: absolute; top: 170px; right: 20px; width: 42px; height: 42px; background: rgba(255, 255, 255, 0.92); border: 2px solid #FFB7C5; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 20px; cursor: pointer; z-index: 100000000; box-shadow: 0 2px 12px rgba(0,0,0,0.2); transition: transform 0.15s;">📖</div>
+
+<!-- 综合系统按钮（一键三连） -->
+<div id="sys-menu-btn" style="position: absolute; top: 70px; right: 20px; width: 42px; height: 42px; background: rgba(255, 255, 255, 0.92); border: 2px solid #FFB7C5; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 22px; cursor: pointer; z-index: 100000000; box-shadow: 0 2px 12px rgba(0,0,0,0.2); transition: transform 0.15s;">⚙️<span id="achieve-red-dot" class="red-dot"></span></div>
+
+<!-- 系统菜单面板 -->
+<div id="sys-menu-panel" style="position: absolute; top: 120px; right: 20px; background: rgba(255, 255, 255, 0.98); border: 2px solid #FFB7C5; border-radius: 12px; padding: 10px; display: none; flex-direction: column; gap: 8px; z-index: 100000000; box-shadow: 0 5px 15px rgba(0,0,0,0.15); min-width: 130px;">
+    <div class="sys-item" id="sys-achieve-btn" style="padding: 10px 15px; border-radius: 8px; background: #FFF0F5; color: #FF69B4; font-weight: bold; cursor: pointer; font-size: 14px;">🏆 成就墙</div>
+    <div class="sys-item" id="sys-gallery-btn" style="padding: 10px 15px; border-radius: 8px; background: #FFF0F5; color: #FF69B4; font-weight: bold; cursor: pointer; font-size: 14px;">📖 回忆长廊</div>
+    <div class="sys-item" id="sys-weather-btn" style="padding: 10px 15px; border-radius: 8px; background: #FFF0F5; color: #FF69B4; font-weight: bold; cursor: pointer; font-size: 14px;">☀️ 切换天气</div>
+</div>
 <!-- 成就面板层 -->
 <div id="achieve-layer">
     <div class="achieve-panel">
@@ -917,9 +913,7 @@
         <div class="achieve-grid" id="achieve-grid"></div>
     </div>
 </div>
-<!-- 天气测试按钮（点击循环切换：白天→黄昏→深夜） -->
-<div id="weather-test-btn" style="position: absolute; top: 70px; right: 20px; width: 42px; height: 42px; background: rgba(255, 255, 255, 0.92); border: 2px solid #FFB7C5; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 20px; cursor: pointer; z-index: 100000000; box-shadow: 0 2px 12px rgba(0,0,0,0.2); transition: transform 0.15s;">☁️</div>
-          
+     
 
 <!-- 新增：存档面板 -->
 <div id="save-menu-panel">
@@ -1057,8 +1051,18 @@
     <div style="position: absolute; top: 30px; left: 20px; color: #fff; font-size: 24px; font-weight: bold; font-family: sans-serif;">
         分数: <span id="jump-score" style="color: #FFB7C5;">0</span>
     </div>
-    <!-- 退出按钮 -->
-    <button id="exit-game-btn" style="position: absolute; top: 30px; right: 20px; background: transparent; border: 2px solid #888; color: #fff; padding: 8px 15px; border-radius: 20px; font-weight: bold;">退出</button>
+    <!-- 退出按钮，往左挪，避开右上角的全局按钮 -->
+    <button id="exit-game-btn" style="position: absolute; top: 30px; right: 80px; background: transparent; border: 2px solid #888; color: #fff; padding: 8px 15px; border-radius: 20px; font-weight: bold;">退出</button>
+            <button id="jump-skin-btn" style="position: absolute; top: 30px; right: 150px; background: transparent; border: 2px solid #888; color: #fff; padding: 8px 15px; border-radius: 20px; font-weight: bold; z-index: 100000000;">换肤</button>
+
+        <!-- 换肤面板 -->
+        <div id="jump-skin-panel" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(0,0,0,0.95); padding: 20px; border-radius: 15px; display: none; flex-direction: column; align-items: center; z-index: 100000000; border: 2px solid #FFB7C5; width: 80%; max-width: 350px;">
+            <h3 style="color:#FFB7C5; margin-top:0;">选择你的小可爱</h3>
+            <div id="jump-skin-grid" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-bottom: 20px; width: 100%;">
+                <!-- 动态渲染 -->
+            </div>
+            <button id="jump-skin-close" class="special-btn" style="width: 100%;">关闭</button>
+        </div>
 
     <!-- 游戏画布 -->
     <canvas id="jump-canvas" style="width: 100%; height: 100%;"></canvas>
@@ -1259,36 +1263,22 @@
             e.preventDefault();
         });
 
-        // 监听选区变化，只要发现有选区瞬间清空
-        document.addEventListener('selectionchange', function() {
-            const selection = window.getSelection();
-            if (selection && selection.toString().length > 0) {
-                selection.removeAllRanges(); 
-            }
-        });
         // 针对部分顽固的安卓浏览器，直接拦截长按事件
         document.addEventListener('touchstart', function(e) {
             if (e.touches.length > 1) { // 多指操作（如双指缩放）
                 e.preventDefault();
             }
         }, { passive: false });
-                // 【终极防干扰】定时清理 Netlify 的流氓水印
-        setInterval(function() {
-            // 寻找所有 id 或 class 包含 netlify 的元素
-            const badElements = document.querySelectorAll('[id*="netlify"], [class*="netlify"], a[href*="netlify"]');
-            badElements.forEach(el => el.remove());
-            
-            // 寻找所有包含 "Powered by" 字样的元素
-            const allElements = document.querySelectorAll('a, div, span');
-            allElements.forEach(el => {
-                if (el.textContent && el.textContent.includes('Powered by')) {
-                    el.remove();
-                }
-            });
-        }, 500); // 每 0.5 秒扫荡一次，它加多少我们删多少
         // ================= 全局定时器清理机制 =================
         let globalTimers = [];
-        function safeSetTimeout(fn, delay) { let id = setTimeout(fn, delay); globalTimers.push(id); return id; }
+        function safeSetTimeout(fn, delay) { 
+            let id = setTimeout(() => {
+                fn();
+                globalTimers = globalTimers.filter(t => t !== id); // 执行完就剔除
+            }, delay); 
+            globalTimers.push(id); 
+            return id; 
+        }
         function safeSetInterval(fn, delay) { let id = setInterval(fn, delay); globalTimers.push(id); return id; }
         function clearAllGlobalTimers() { globalTimers.forEach(id => { clearTimeout(id); clearInterval(id); }); globalTimers = []; }
 
@@ -1440,12 +1430,6 @@
                     // 每分钟检查一次时间
                     safeSetInterval(checkTime, 60000); 
                     
-                    // 绑定测试按钮事件
-                    document.getElementById('weather-test-btn').onclick = () => {
-                        if (currentState === 'day') setWeather('dusk');
-                        else if (currentState === 'dusk') setWeather('night');
-                        else setWeather('day');
-                    };
                 },
                 pause: function() {
                     isPaused = true;
@@ -3541,6 +3525,8 @@ window.JumpGame = (function() {
     const R_Y = 22;      // 菱形半高
     const H = 35;        // 方块厚度
     let SKIN_COLOR = localStorage.getItem('jh_jump_skin') || '#FF69B4'; 
+    let playerEmoji = localStorage.getItem('jh_jump_emoji') || '🐷';
+const EMOJI_LIST = ['🐷', '🐰', '🐼', '🦊', '🐱', '🐶', '🐸', '🐵'];
 
     const COLORS = ['#FFB7C5', '#AEC6CF', '#FFD1DC', '#FDFD96', '#77DD77', '#B39EB5', '#F49AC1', '#84DCC6'];
 
@@ -3564,7 +3550,7 @@ window.JumpGame = (function() {
     
     const CHARGE_DURATION = 850;    
     const MIN_DISTANCE = 35;        
-    const MAX_DISTANCE = 145;       
+    const MAX_DISTANCE = 180;       
 
     function resize() {
         width = canvas.width = window.innerWidth;
@@ -3574,6 +3560,7 @@ window.JumpGame = (function() {
 
     // 【修改】传入完整的 block 对象，以便读取 number
     function drawBlock(block) {
+        ctx.globalAlpha = 1.0;
         const bx = block.x;
         const by = block.y;
         const color = block.color;
@@ -3588,7 +3575,7 @@ window.JumpGame = (function() {
         ctx.lineTo(sx - R_X, sy + H);
         ctx.fillStyle = color;
         ctx.fill();
-        ctx.fillStyle = 'rgba(0,0,0,0.2)'; 
+        ctx.fillStyle = 'rgba(0,0,0,0.1)'; 
         ctx.fill();
 
         // 右侧面
@@ -3599,7 +3586,7 @@ window.JumpGame = (function() {
         ctx.lineTo(sx + R_X, sy + H);
         ctx.fillStyle = color;
         ctx.fill();
-        ctx.fillStyle = 'rgba(0,0,0,0.4)'; 
+        ctx.fillStyle = 'rgba(0,0,0,0.15)'; 
         ctx.fill();
 
         // 顶面
@@ -3627,6 +3614,8 @@ window.JumpGame = (function() {
     }
 
     function initGameData() {
+        // 👇 强制取消上一次没关干净的循环，防止重叠 👇
+        if (window.jumpAnimId) cancelAnimationFrame(window.jumpAnimId);
         resize();
         score = 0;
         scoreEl.innerText = score;
@@ -3658,8 +3647,11 @@ window.JumpGame = (function() {
         requestAnimationFrame(gameLoop);
     }
 
-    function gameLoop() {
-        if (!isPlaying) return;
+        function gameLoop() {
+        if (!isPlaying) {
+            if (window.jumpAnimId) cancelAnimationFrame(window.jumpAnimId);
+            return;
+        }
         ctx.clearRect(0, 0, width, height);
 
         // 相机平滑
@@ -3674,7 +3666,6 @@ window.JumpGame = (function() {
         camera.x += (camera.targetX - camera.x) * 0.15;
         camera.y += (camera.targetY - camera.y) * 0.15;
 
-        // 【修改】改为传入整个 block 对象
         blocks.forEach(b => drawBlock(b));
 
         const px = player.x - camera.x;
@@ -3689,6 +3680,12 @@ window.JumpGame = (function() {
 
         // 小人
         ctx.save();
+        // 👇 暴力强制清空所有影响透明度的状态 👇
+        ctx.globalAlpha = 1.0; 
+        ctx.globalCompositeOperation = 'source-over';
+        ctx.shadowBlur = 0;
+        ctx.shadowColor = 'transparent';
+        
         ctx.translate(px, py);
         ctx.rotate(player.rotation);
         ctx.scale(player.scaleX, player.scaleY);
@@ -3697,19 +3694,12 @@ window.JumpGame = (function() {
         player.scaleX += (1 - player.scaleX) * 0.15;
         player.scaleY += (1 - player.scaleY) * 0.15;
 
-        ctx.beginPath();
-        ctx.fillStyle = SKIN_COLOR;
-        if (ctx.roundRect) {
-            ctx.roundRect(-10, -35, 20, 35, [10,10,5,5]);
-        } else {
-            ctx.rect(-10, -35, 20, 35);
-        }
-        ctx.fill();
-        
-        ctx.beginPath();
-        ctx.fillStyle = '#fff';
-        ctx.arc(0, -30, 6, 0, Math.PI * 2);
-        ctx.fill();
+        // 画小猪/emoji
+        ctx.font = '35px Arial';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillStyle = '#000'; // 防止某些系统把emoji渲染成透明
+        ctx.fillText(playerEmoji, 0, -17); 
         ctx.restore();
 
         // 跳跃插值
@@ -3721,7 +3711,6 @@ window.JumpGame = (function() {
             player.x = jumpStartPos.x + (jumpEndPos.x - jumpStartPos.x) * t;
             player.y = jumpStartPos.y + (jumpEndPos.y - jumpStartPos.y) * t;
             
-            // 抛物线最高点变高，滞空感更强
             player.z = Math.sin(t * Math.PI) * 110;
             player.rotation = t * Math.PI * 2;
 
@@ -3731,7 +3720,8 @@ window.JumpGame = (function() {
             }
         }
 
-        requestAnimationFrame(gameLoop);
+        // 👇 记录 ID，防止多个循环同时运行产生残影 👇
+        window.jumpAnimId = requestAnimationFrame(gameLoop);
     }
 
     function startCharge(e) {
@@ -3808,7 +3798,7 @@ window.JumpGame = (function() {
             player.scaleX = 1.4;
             player.scaleY = 0.6;
 
-            const nextDist = 65 + Math.random() * 65;
+            const nextDist = 85 + Math.random() * 75; // 👈 间距变成 85 到 160 之间，拉开距离
             const angle = -Math.PI / 4 + (Math.random() - 0.5) * 0.12;
             
             // 【修改】生成新方块时，增加 number 属性
@@ -3830,7 +3820,7 @@ window.JumpGame = (function() {
             let vy = (jumpEndPos.y - jumpStartPos.y) * 0.02;
             let fallSpeedZ = 0;
             
-            function fallDown() {
+                        function fallDown() {
                 player.x += vx;
                 player.y += vy;
                 vx *= 0.95;
@@ -3846,7 +3836,6 @@ window.JumpGame = (function() {
                 camera.y += (camera.targetY - camera.y) * 0.15;
 
                 ctx.clearRect(0, 0, width, height);
-                // 【修改】这里的调用也改为传入对象
                 blocks.forEach(b => drawBlock(b));
                 
                 const px = player.x - camera.x;
@@ -3858,13 +3847,21 @@ window.JumpGame = (function() {
                 ctx.fillStyle = 'rgba(255,0,0,0.4)'; 
                 ctx.fill();
 
+                // 👇 强制清空状态 👇
                 ctx.save();
+                ctx.globalAlpha = 1.0;
+                ctx.globalCompositeOperation = 'source-over';
+                ctx.shadowBlur = 0;
+                ctx.shadowColor = 'transparent';
+
                 ctx.translate(px, py);
                 ctx.rotate(player.rotation);
-                ctx.beginPath();
-                ctx.fillStyle = SKIN_COLOR;
-                ctx.roundRect ? ctx.roundRect(-10, -35, 20, 35, [10,10,5,5]) : ctx.rect(-10, -35, 20, 35);
-                ctx.fill();
+                
+                ctx.font = '35px Arial';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillStyle = '#000';
+                ctx.fillText(playerEmoji, 0, -17); 
                 ctx.restore();
 
                 if (py > height + 100) {
@@ -3929,6 +3926,33 @@ window.JumpGame = (function() {
     canvas.addEventListener('pointerdown', startCharge);
     canvas.addEventListener('pointerup', releaseCharge);
 
+    // 换肤逻辑必须放在这里
+    const jumpSkinBtn = document.getElementById('jump-skin-btn');
+    if (jumpSkinBtn) {
+        jumpSkinBtn.onclick = (e) => {
+            e.stopPropagation();
+            const grid = document.getElementById('jump-skin-grid');
+            grid.innerHTML = '';
+            EMOJI_LIST.forEach(emoji => {
+                const el = document.createElement('div');
+                el.style.cssText = 'font-size: 30px; cursor: pointer; padding: 10px; border-radius: 10px; background: ' + (playerEmoji === emoji ? 'rgba(255,183,197,0.3)' : 'transparent') + '; border: 2px solid ' + (playerEmoji === emoji ? '#FFB7C5' : 'transparent') + '; display: flex; justify-content: center; align-items: center;';
+                el.innerText = emoji;
+                el.onclick = () => {
+                    playerEmoji = emoji;
+                    localStorage.setItem('jh_jump_emoji', emoji);
+                    document.getElementById('jump-skin-panel').style.display = 'none';
+                    if (window.SoundSystem) window.SoundSystem.playClick();
+                };
+                grid.appendChild(el);
+            });
+            document.getElementById('jump-skin-panel').style.display = 'flex';
+        };
+    }
+    document.getElementById('jump-skin-close').onclick = () => {
+        document.getElementById('jump-skin-panel').style.display = 'none';
+    };
+
+   
     return {
         start: function() { gameCenterLayer.style.display = 'flex'; initGameData(); },
         setSkinColor: function(color) { SKIN_COLOR = color; }
@@ -3954,8 +3978,12 @@ window.JumpGame = (function() {
         };
 
         // 获取当前装备状态
-        function getEquipped() {
-            return JSON.parse(localStorage.getItem('jh_equipped')) || { accessory: null, frame: null, effect: null, skin: null };
+                function getEquipped() {
+            try {
+                return JSON.parse(localStorage.getItem('jh_equipped')) || { accessory: null, frame: null, effect: null, skin: null };
+            } catch (e) {
+                return { accessory: null, frame: null, effect: null, skin: null };
+            }
         }
         
         // 保存装备状态并应用
@@ -4372,12 +4400,6 @@ window.JumpGame = (function() {
             }
 
             // 初始化绑定
-            document.getElementById('gallery-menu-btn').onclick = function(e) {
-                e.stopPropagation();
-                document.getElementById('pet-menu').classList.remove('show');
-                render();
-                layer.style.display = 'flex';
-            };
             document.getElementById('gallery-close-btn').onclick = () => layer.style.display = 'none';
 
             return {
@@ -4673,20 +4695,15 @@ document.getElementById('btn-leaderboard').onclick = function(e) {
                 }
             }
 
-            return {
+                        return {
                 init: function() {
-                    document.getElementById('achieve-menu-btn').onclick = (e) => {
-                        e.stopPropagation();
-                        document.getElementById('pet-menu').classList.remove('show');
-                        // 消除红点
-                        const dot = document.getElementById('achieve-red-dot');
-                        if (dot) dot.style.display = 'none';
-                        render();
-                        document.getElementById('achieve-layer').style.display = 'flex';
-                    };
                     document.getElementById('achieve-close-btn').onclick = () => {
                         document.getElementById('achieve-layer').style.display = 'none';
                     };
+                },
+                show: function() {
+                    render();
+                    document.getElementById('achieve-layer').style.display = 'flex';
                 },
                 addProgress: addProgress,
                 testUnlockAll: function() {
@@ -5189,6 +5206,63 @@ document.getElementById('btn-leaderboard').onclick = function(e) {
                     rightBtn.disabled = false;
                     dropBtn.disabled = false;
                     initDolls();
+                }
+            };
+        })();
+                // ================= 综合系统菜单逻辑 =================
+        (function initSysMenu() {
+            const sysBtn = document.getElementById('sys-menu-btn');
+            const sysPanel = document.getElementById('sys-menu-panel');
+            
+            // 菜单展开/收起
+            sysBtn.onclick = function(e) {
+                e.stopPropagation();
+                sysPanel.style.display = sysPanel.style.display === 'flex' ? 'none' : 'flex';
+            };
+            
+            // 点击页面其他地方关闭菜单
+            document.body.addEventListener('click', function(e) {
+                if (sysPanel.style.display === 'flex' && !sysPanel.contains(e.target) && e.target !== sysBtn) {
+                    sysPanel.style.display = 'none';
+                }
+            });
+
+            // 1. 天气
+            document.getElementById('sys-weather-btn').onclick = function(e) {
+                e.stopPropagation();
+                sysPanel.style.display = 'none';
+                if (window.WeatherSystem && window.WeatherSystem.setWeather) {
+                    const mask = document.getElementById('main-bg-mask').style.background;
+                    if (mask.includes('224, 247, 250')) window.WeatherSystem.setWeather('dusk');
+                    else if (mask.includes('255, 183, 197')) window.WeatherSystem.setWeather('night');
+                    else window.WeatherSystem.setWeather('day');
+                }
+            };
+
+            // 2. 成就
+            document.getElementById('sys-achieve-btn').onclick = function(e) {
+                e.stopPropagation();
+                sysPanel.style.display = 'none';
+                const dot = document.getElementById('achieve-red-dot');
+                if (dot) dot.style.display = 'none'; 
+                if (window.AchieveSystem) {
+                    window.AchieveSystem.show(); // 直接调用渲染和展示
+                }
+            };
+
+            // 3. 回忆长廊 (书)
+            document.getElementById('sys-gallery-btn').onclick = function(e) {
+                e.stopPropagation();
+                sysPanel.style.display = 'none';
+                if (window.GallerySystem) {
+                    try {
+                        const layer = document.getElementById('gallery-layer');
+                        layer.style.display = 'flex';
+                        window.GallerySystem.switchTab('quotes');
+                    } catch (err) {
+                        console.error("画廊打开失败:", err);
+                        alert("画廊打开出错：" + err.message);
+                    }
                 }
             };
         })();
