@@ -1884,8 +1884,16 @@
         };
 
         document.body.addEventListener('click', function(e) {
+            // 原本的菜单关闭逻辑
             if (!petMenu.contains(e.target) && e.target !== petAvatar && !actionPanel.contains(e.target) && !document.getElementById('date-panel').contains(e.target) && !document.getElementById('story-layer').contains(e.target) && !document.getElementById('hug-modal').contains(e.target)) {
                 petMenu.classList.remove('show'); actionPanel.style.display = 'none';
+            }
+            
+            // 👇 新增：如果点击了约会面板以外的地方，自动关闭约会面板
+            const datePanel = document.getElementById('date-panel');
+            if (datePanel.style.display === 'flex' && !datePanel.contains(e.target) && e.target.id !== 'btn-date') {
+                datePanel.classList.remove('show');
+                datePanel.style.display = 'none';
             }
         });
 
@@ -2896,6 +2904,14 @@
         };
 
         document.getElementById('btn-date').onclick = function(e) {
+                    // 👇 添加这段关闭事件 👇
+        document.getElementById('date-close-btn').onclick = function(e) {
+            e.stopPropagation(); // 阻止冒泡
+            const datePanel = document.getElementById('date-panel');
+            datePanel.classList.remove('show');
+            datePanel.style.display = 'none';
+        };
+        // 👆 添加结束 👆
             e.stopPropagation(); 
             petMenu.classList.remove('show'); 
             actionPanel.style.display = 'none';
