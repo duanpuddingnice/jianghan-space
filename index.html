@@ -898,7 +898,7 @@
     <div id="date-panel">
         <div class="date-header">
             <div class="date-title">💕 与江寒的约定</div>
-            <div class="date-close" id="date-close-btn">✖</div>
+            <div class="date-close" id="date-close-btn" onclick="event.stopPropagation(); document.getElementById('date-panel').style.display='none'; document.getElementById('date-panel').classList.remove('show');">✖</div>
         </div>
         <div class="date-list" id="date-list-container"></div>
     </div>
@@ -5311,6 +5311,17 @@ document.getElementById('btn-leaderboard').onclick = function(e) {
                 }
             };
         })();
+        // 全局点击，点击外部关闭约会面板
+document.addEventListener('click', function(e) {
+    const datePanel = document.getElementById('date-panel');
+    // 如果面板是打开的，且点击的不是面板内部，也不是打开按钮
+    if (datePanel && datePanel.style.display === 'flex') {
+        if (!datePanel.contains(e.target) && e.target.id !== 'btn-date') {
+            datePanel.classList.remove('show');
+            datePanel.style.display = 'none';
+        }
+    }
+}, true); // 使用 true 捕获阶段，防止被其他事件拦截
 </script>
 </body>
 </html>
