@@ -9,7 +9,16 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <link rel="apple-touch-icon" href="icon-192.png">
     <style>
-        * { box-sizing: border-box; }
+                * { 
+            box-sizing: border-box; 
+            /* 【新增】暴力封杀所有元素的选中和长按菜单 */
+            -webkit-touch-callout: none !important;
+            -webkit-user-select: none !important;
+            -khtml-user-select: none !important;
+            -moz-user-select: none !important;
+            -ms-user-select: none !important;
+            user-select: none !important;
+        }
                body, html {
             margin: 0; padding: 0; width: 100%; height: 100%;
                         background-image: url('date_bg.jpg');
@@ -207,7 +216,10 @@
         }
         .story-title { display: none; }
         
-        .story-text { flex: 1; overflow-y: auto; color: #f0f0f0; font-family: 'Microsoft YaHei', sans-serif; font-size: clamp(16px, 4.2vw, 20px); line-height: 2.1; text-align: justify; white-space: pre-wrap; margin-bottom: 20px; cursor: pointer; text-shadow: 0 1px 2px #000; }
+        .story-text { flex: 1; overflow-y: auto; color: #f0f0f0; font-family: 'Microsoft YaHei', sans-serif; font-size: clamp(16px, 4.2vw, 20px); line-height: 2.1; text-align: justify; white-space: pre-wrap; margin-bottom: 20px; cursor: pointer; text-shadow: 0 1px 2px #000; 
+        -webkit-touch-callout: none !important;
+            -webkit-user-select: none !important;
+            user-select: none !important;}
         .story-text::-webkit-scrollbar { width: 4px; }
         .story-text::-webkit-scrollbar-thumb { background: #555; border-radius: 2px; }
         
@@ -358,10 +370,10 @@
 </div>
 
        <!-- 将原有的 audio 标签替换为以下内容 -->
-    <audio id="bgm1" loop preload="none"><source src="1.mp3" type="audio/mpeg"></audio>
-    <audio id="bgm2" loop preload="none"><source src="2.mp3" type="audio/mpeg"></audio>
-    <audio id="bgm3" loop preload="none"><source src="3.mp3" type="audio/mpeg"></audio>
-    <audio id="bgm_date" loop preload="none"><source src="kiku.mp3" type="audio/mpeg"></audio>
+    <audio id="bgm1" loop preload="auto"><source src="1.mp3" type="audio/mpeg"></audio>
+    <audio id="bgm2" loop preload="auto"><source src="2.mp3" type="audio/mpeg"></audio>
+    <audio id="bgm3" loop preload="auto"><source src="3.mp3" type="audio/mpeg"></audio>
+    <audio id="bgm_date" loop preload="auto"><source src="kiku.mp3" type="audio/mpeg"></audio>
 
     <div id="main-bg-mask"></div>
     <canvas id="bg-canvas"></canvas>
@@ -506,12 +518,22 @@
                 }
             }
         });
-                document.addEventListener('contextmenu', function(e) {
+        prel        // 【新增】全面封杀右键、选中、长按
+        document.onselectstart = function() { return false; }; // 禁止选中
+        document.oncontextmenu = function() { return false; }; // 禁止右键菜单
+        
+        document.addEventListener('contextmenu', function(e) {
             e.preventDefault();
         });
         document.addEventListener('selectstart', function(e) {
             e.preventDefault();
         });
+        // 针对部分顽固的安卓浏览器，直接拦截长按事件
+        document.addEventListener('touchstart', function(e) {
+            if (e.touches.length > 1) { // 多指操作（如双指缩放）
+                e.preventDefault();
+            }
+        }, { passive: false });
                 // 【终极防干扰】定时清理 Netlify 的流氓水印
         setInterval(function() {
             // 寻找所有 id 或 class 包含 netlify 的元素
@@ -537,10 +559,11 @@
         let isDarkMode = false;
         const isMobile = window.innerWidth < 768; 
 
-        // 【修复】提前声明这三个状态变量，供开头 visibilitychange 安全访问
+        // 【新增】提前声明这三个状态变量
         let currentGamePhase = 'idle';
         let currentStoryId = null;
         let currentNodeId = null;
+    
         
         let affection = parseInt(localStorage.getItem('jh_affection')) || 20; 
         let firstRecall = localStorage.getItem('jh_first_recall') === 'true';
@@ -938,7 +961,7 @@
         function showEnding() {
             currentGamePhase = 'ending';
             pauseAllBGM();
-            clearPopups(); clearPopups(); document.getElementById('main-bg-mask').style.backgroundColor = 'rgba(224, 247, 250, 0.85)'; isDarkMode = false; initParticles(); document.getElementById('pet-widget').style.display = 'none'; 
+            clearPopups(); document.getElementById('main-bg-mask').style.backgroundColor = 'rgba(224, 247, 250, 0.85)'; isDarkMode = false; initParticles(); document.getElementById('pet-widget').style.display = 'none'; 
             const endingLayer = document.getElementById('ending-layer'); const endingText = document.getElementById('ending-text'); const memoryBtn = document.getElementById('memory-btn'); const forgetBtn = document.getElementById('forget-btn');
             endingLayer.style.display = 'flex'; safeSetTimeout(() => endingLayer.classList.add('show'), 50);
             endingText.style.color = '#FF8FAB'; endingText.style.textShadow = '0 0 20px rgba(255,143,171,0.4)'; endingText.textContent = "我爱你，也是真的。";
@@ -2551,21 +2574,21 @@ document.getElementById('btn-history-mode').onclick = function(e) {
 };
         // 启动主流程
         startFlow();
-                // ================= 注册 PWA (让网页变 App) =================
-                // ================= 注册 PWA (让网页变 App) =================
+                               // ================= 优雅的 PWA 注册（不打断玩家） =================
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
                 navigator.serviceWorker.register('sw.js').then((reg) => {
+                    // 当发现代码有新版本时
                     reg.onupdatefound = () => {
                         const installingWorker = reg.installing;
                         installingWorker.onstatechange = () => {
                             if (installingWorker.state === 'installed') {
                                 if (navigator.serviceWorker.controller) {
-                                    console.log('发现新版本');
-                                    // 【修改点 1】改成 confirm 确认
-                                    if (confirm('检测到新版本，是否刷新？\n\n⚠️ 当前未保存的进度将丢失，建议先存档再刷新。')) {
-                                        window.location.reload();
-                                    }
+                                    // 发现新版本！但绝对不强制刷新！
+                                    console.log('发现新版本，将在下次打开页面时生效');
+                                    
+                                    // （可选）如果你想提示玩家，可以放一个不打扰的小图标或弹窗
+                                    // 但最好的方式是：什么都不做，等玩家下次退出重进，自动就是新版。
                                 }
                             }
                         };
@@ -2575,28 +2598,6 @@ document.getElementById('btn-history-mode').onclick = function(e) {
                 });
             });
         }
-                // ================= 自动更新检测 =================
-                // ================= 自动更新检测 =================
-        setInterval(async () => {
-            try {
-                const response = await fetch(window.location.href, { method: 'HEAD', cache: 'no-cache' });
-                const lastModified = response.headers.get('Last-Modified');
-                const storedVersion = localStorage.getItem('app_version');
-
-                if (storedVersion && lastModified && storedVersion !== lastModified) {
-                    // 【修改点 2】先把版本号更新掉，避免玩家点"取消"后每分钟都弹一次
-                    localStorage.setItem('app_version', lastModified);
-                    // 【修改点 3】改成 confirm 确认
-                    if (confirm('检测到新版本，是否刷新？\n\n⚠️ 当前未保存的进度将丢失，建议先存档再刷新。')) {
-                        window.location.reload();
-                    }
-                } else if (!storedVersion && lastModified) {
-                    localStorage.setItem('app_version', lastModified);
-                }
-            } catch (e) {
-                // 离线或报错时忽略
-            }
-        }, 60000); // 每分钟检查一次 // 每分钟检查一次
     </script>
 </body>
 </html>
