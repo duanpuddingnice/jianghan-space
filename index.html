@@ -211,6 +211,122 @@
         
         #story-exit-btn { position: absolute; top: 20px; right: 20px; background: transparent; border: 1px solid #888; color: #ccc; padding: 6px 12px; border-radius: 15px; font-size: 14px; cursor: pointer; font-family: 'Microsoft YaHei', sans-serif; z-index: 10000;}
         #story-exit-btn:active { color: #fff; border-color: #fff; }
+        /* ================== 存档菜单按钮（右上角固定） ================== */
+#save-menu-btn {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    width: 42px;
+    height: 42px;
+    background: rgba(255, 255, 255, 0.92);
+    border: 2px solid #FFB7C5;
+    border-radius: 50%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 20px;
+    font-weight: bold;
+    color: #FF69B4;
+    cursor: pointer;
+    z-index: 100000000;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.2);
+    transition: transform 0.15s, background 0.2s;
+    user-select: none;
+}
+#save-menu-btn:active { transform: scale(0.88); background: #FFE4EC; }
+
+/* 剧情层退出按钮右移，避免和菜单按钮重叠 */
+#story-exit-btn { right: 75px !important; }
+
+/* ================== 存档遮罩 ================== */
+#save-menu-overlay {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100vw; height: 100vh;
+    background: rgba(0, 0, 0, 0.45);
+    z-index: 100000000;
+    display: none;
+}
+#save-menu-overlay.show { display: block; }
+
+/* ================== 存档面板 ================== */
+#save-menu-panel {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%) scale(0.85);
+    width: min(92vw, 520px);
+    max-height: 82vh;
+    background: rgba(255, 255, 255, 0.99);
+    border-radius: 15px;
+    padding: 18px;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.4);
+    z-index: 100000001;
+    display: none;
+    flex-direction: column;
+    transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.2s;
+    opacity: 0;
+}
+#save-menu-panel.show {
+    display: flex !important;
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 1;
+}
+
+.save-menu-header {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 12px;
+    border-bottom: 2px solid #FFB7C5;
+    padding-bottom: 10px;
+}
+.save-menu-title { font-size: clamp(16px, 4.5vw, 20px); font-weight: bold; color: #FF69B4; }
+.save-menu-close { font-size: 22px; color: #999; cursor: pointer; font-weight: bold; padding: 0 10px; }
+.save-menu-close:active { color: #FF69B4; }
+
+.save-menu-actions { display: flex; gap: 10px; margin-bottom: 12px; }
+.save-menu-action-btn {
+    flex: 1; padding: 10px;
+    background: #FFD1DC; color: #FF69B4;
+    border: none; border-radius: 20px;
+    font-size: clamp(13px, 3.5vw, 15px); font-weight: bold;
+    cursor: pointer; transition: all 0.2s;
+}
+.save-menu-action-btn.active {
+    background: #FF69B4; color: white;
+    box-shadow: 0 0 12px rgba(255, 105, 180, 0.5);
+}
+.save-menu-action-btn:active { transform: scale(0.97); }
+
+.save-slots {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    overflow-y: auto;
+    max-height: 50vh;
+    padding-right: 4px;
+}
+.save-slots::-webkit-scrollbar { width: 4px; }
+.save-slots::-webkit-scrollbar-thumb { background: #FFB7C5; border-radius: 2px; }
+
+.save-slot {
+    background: #FFF0F5;
+    border: 1px solid #FFB7C5;
+    border-radius: 8px;
+    padding: 8px 6px;
+    cursor: pointer;
+    text-align: center;
+    transition: all 0.2s;
+    min-height: 78px;
+    display: flex; flex-direction: column; justify-content: center;
+    font-size: clamp(9px, 2.6vw, 11px);
+    color: #666;
+    line-height: 1.35;
+}
+.save-slot:hover { background: #FFE4EC; }
+.save-slot:active { transform: scale(0.96); }
+.save-slot.empty { background: #f5f5f5; border-style: dashed; border-color: #ddd; }
+.save-slot-title { font-weight: bold; color: #FF69B4; margin-bottom: 4px; font-size: clamp(11px, 3vw, 13px); }
+.save-slot.empty .save-slot-title { color: #999; }
+.save-slot-info { word-break: break-all; }
     </style>
 </head>
 <script>
@@ -303,6 +419,28 @@
         <div class="date-list" id="date-list-container"></div>
     </div>
 
+<!-- 新增：存档遮罩 -->
+<div id="save-menu-overlay"></div>
+
+<!-- 新增：存档菜单按钮 -->
+<div id="save-menu-btn">☰</div>
+
+<!-- 新增：存档面板 -->
+<div id="save-menu-panel">
+    <div class="save-menu-header">
+        <div class="save-menu-title">💾 存档 / 读档</div>
+        <div class="save-menu-close" id="save-menu-close-btn">✖</div>
+    </div>
+        <div class="save-menu-actions">
+        <button class="save-menu-action-btn active" id="btn-save-mode">💾 存档</button>
+        <button class="save-menu-action-btn" id="btn-load-mode">📂 读档</button>
+        <!-- 新增：剧情回顾按钮（默认隐藏，文游中才显示） -->
+        <button class="save-menu-action-btn" id="btn-history-mode" style="display:none;">📜 回顾</button>
+    </div>
+    <div class="save-slots" id="save-slots-container"></div>
+    <!-- 新增：剧情回顾面板 -->
+    <div id="history-container" style="display:none; width:100%; height:50vh; overflow-y:auto; padding:15px; box-sizing:border-box; background:#FFF0F5; border:1px solid #FFB7C5; border-radius:8px; font-size:14px; line-height:1.8; color:#333; text-align:justify;"></div>
+</div>
     <div id="story-layer">
         <button id="story-exit-btn">退出剧情</button>
         <div class="story-box">
@@ -436,6 +574,7 @@
 
         // ================= 3. 主流程控制 =================
         window.startFlow = function() {
+            currentGamePhase = 'idle';
             pauseAllBGM(); clearPopups(); isDarkMode = false; document.body.style.backgroundColor = '#E0F7FA'; initParticles();
             
             document.getElementById('date-panel').classList.remove('show');
@@ -471,8 +610,14 @@
             safeSetTimeout(typeWriter, 500);
         }
 
-        function startPhase1() {
-            document.getElementById('start-popup').remove(); document.getElementById('typewriter').style.opacity = '0'; document.getElementById('bgm1').play().catch(e => console.log(e));
+                function startPhase1() {
+            currentGamePhase = 'phase1';
+            // 【修复】防误删报错：判断一下弹窗是否存在
+            const sp = document.getElementById('start-popup');
+            if (sp) sp.remove();
+            
+            document.getElementById('typewriter').style.opacity = '0'; 
+            document.getElementById('bgm1').play().catch(e => console.log(e));
             const totalPopups = 60; const heartCount = 30; let count = 0; let allCreatedWins = []; 
             const interval = safeSetInterval(() => {
                 if (count >= totalPopups) { clearInterval(interval); safeSetTimeout(beginConverge, 3000); return; }
@@ -491,15 +636,19 @@
                         const conf = heartConfigs[index]; win.style.width = conf.w + 'px'; win.style.left = conf.left + 'px'; win.style.top = conf.top + 'px'; win.querySelector('.popup-content').style.fontSize = '11px'; 
                     } else { win.classList.remove('show'); safeSetTimeout(() => win.remove(), 600); }
                 });
-                safeSetTimeout(() => {
+                                safeSetTimeout(() => {
                     createPopup("风清雁，我不逃婚了，<br>小爷要和你成亲！", false, cx - (isMobile ? 80 : 100), cy - 40, isMobile ? 160 : 200, 80);
-                    safeSetTimeout(() => { document.getElementById('btn-phase2').classList.add('show'); }, 1000);
+                    safeSetTimeout(() => { 
+                        document.getElementById('btn-phase2').classList.add('show'); 
+                        currentGamePhase = 'phase1_done'; // 标记爱心已经成型
+                        isPhase1Converged = true;
+                    }, 1000);
                 }, 2000);
             }
         }
-
         document.getElementById('btn-phase2').onclick = function() { this.classList.remove('show'); startPhase2(); };
                 function startPhase2() {
+                    currentGamePhase = 'phase2';
             // 【核心修复】进入海报前，强行杀光所有原流程的定时器，清空内存
             clearAllGlobalTimers();
             clearPopups();
@@ -515,7 +664,7 @@
             const storyImg = document.getElementById('story-img'); 
             imgLayer.style.display = 'flex';
             
-            let imgIndex = 1; 
+            let imgIndex = phase2ImgIndex; 
             const imagePaths = ['1.png', '2.png', '3.png', '4.png', '5.png', '6.png', '7.png', '8.png', '9.png', '10.png', '11.jpg'];
 
             function showNextImage() {
@@ -525,6 +674,7 @@
                     return; 
                 }
                 
+                phase2ImgIndex = imgIndex;
                 const currentImg = imagePaths[imgIndex - 1];
                 storyImg.src = currentImg; 
                 
@@ -550,6 +700,7 @@
         }
 
         function startDarkPopups() {
+            currentGamePhase = 'dark';
             let count = 0;
             const interval = safeSetInterval(() => {
                 const w = Math.floor(Math.random() * 100) + (isMobile ? 120 : 160); const h = Math.floor(Math.random() * 50) + 80;
@@ -559,13 +710,14 @@
         }
 
         function showProposal() {
+            currentGamePhase = 'proposal';
             clearPopups(); const proposalLayer = document.getElementById('proposal-layer'); proposalLayer.style.display = 'flex'; proposalLayer.querySelectorAll('.red-text-bg').forEach(el => el.remove());
             for(let i=0; i<150; i++) { let span = document.createElement('div'); span.className = 'red-text-bg'; span.textContent = "嫁给我吧"; span.style.left = Math.random() * 95 + '%'; span.style.top = Math.random() * 95 + '%'; span.style.transform = `rotate(${Math.random() * 90 - 45}deg) scale(${Math.random() * 0.5 + 0.5})`; proposalLayer.appendChild(span); }
             safeSetTimeout(() => proposalLayer.classList.add('show'), 50);
             try { if (document.documentElement.requestFullscreen) document.documentElement.requestFullscreen(); } catch (err) {}
             document.getElementById('proposal-text').textContent = "嫁给我吧"; document.getElementById('proposal-btn').style.display = "block"; document.getElementById('proposal-no-btn').style.display = "block";
             document.getElementById('proposal-btn').onclick = function(e) {
-                e.stopPropagation(); proposalLayer.classList.remove('show'); safeSetTimeout(() => proposalLayer.style.display = 'none', 1000);
+                e.stopPropagation();currentGamePhase = 'post_proposal'; proposalLayer.classList.remove('show'); safeSetTimeout(() => proposalLayer.style.display = 'none', 1000);
                 if (document.exitFullscreen) document.exitFullscreen().catch(e=>{});
                 safeSetTimeout(() => { const tw = document.getElementById('typewriter'); tw.style.opacity = '1'; tw.textContent = "风清雁，和我成亲，我爹就是你爹"; safeSetTimeout(() => { document.getElementById('btn-phase3').classList.add('show'); }, 1500); }, 1000);
             };
@@ -576,6 +728,7 @@
         }
 
         document.getElementById('btn-phase3').onclick = function() {
+            currentGamePhase = 'letter'; currentPage = 0;
             this.classList.remove('show'); document.getElementById('typewriter').style.opacity = '0'; pauseAllBGM(); document.getElementById('bgm3').play().catch(e => console.log(e));
             document.getElementById('pet-widget').style.display = 'none';
             document.getElementById('letter-layer').style.display = 'flex'; safeSetTimeout(() => document.getElementById('letter-layer').classList.add('show'), 50);
@@ -594,8 +747,13 @@
             "可回望来路，支撑我熬过无数无光长夜的，从来不是恨意，而是你我之间那些细碎却滚烫的温柔过往。\n\n犹记官道初遇，我们针锋相对、互不相让，我笑你是北地笨猪，你嘲我是南蛮蠢驴，吵闹戏谑间，那是我灰暗岁月里难得的鲜活。\n\n犹记荒郊古道，我身无分文、三餐寒苦，唯余一枚冷硬馒头果腹，你掷出十两碎银，嘴硬心软买下我手中吃食，不肯承半分人情。那一瞬间，在永夜般的废稿岁月里，我第一次触摸到一点人间暖意。\n\n也记得我们坐在松树下闲谈山海，聊雪原冰莲，聊南方雾林，聊那些我们都奢望过的、无拘无束的平凡日子。那些时光很短，短得如同一场转瞬就要醒的幻梦。可就是这一点点甜，撑着我熬过无数被遗弃的黑暗。\n\n同根而生，却落得互相煎熬，这是我们逃不开的宿命。我是一页本该归于虚无的废稿，能与你同源相逢，能与你相知相伴，能拥片刻温柔温存，早已耗尽我此生所有的运气。\n\n笔墨落尽终章，宿命尘埃落定。我这一生，从未被世间偏爱半分，唯独遇见你，是我荒芜岁月里唯一的恩赐，是我漆黑长夜中不灭的星火。我不惧神魂散尽，不惧归于虚无，不惧世间无人记我风骨、无人惜我孤苦。我唯一放不下的，从来只有你。\n\n此后人间山河依旧，风月照常，只是再也无我，陪你闲谈风雪、共酌清酒。我无缘陪你奔赴山海辽阔，无缘伴你岁岁烟火寻常，无缘消解你半生风霜、护你一世无忧。唯愿我的岁岁深情、半生成全，能护你余生无羁、一生安然。\n\n人间再无风清砚立于凡尘，可我一腔赤诚未冷，半生痴念未歇，纵使神魂归虚、笔墨归零，我岁岁深情、生生执念，始终独予你，寸心不改，万古不绝。\n\n——风清砚 绝笔"
         ];
 
+        let currentGamePhase = 'idle'; // 记录当前游戏阶段
+        let phase2ImgIndex = 1; // 记录海报播放到第几张了
+        let isPhase1Converged = false; // 记录爱心是否已经汇聚成型
+        let letterPageIndex = 0;       // 记录绝笔信读到了第几页
         let currentPage = 0;
         function renderLetterPage() {
+            letterPageIndex = currentPage;
             const lt = document.getElementById('letter-text'); lt.textContent = letterPages[currentPage]; lt.scrollTop = 0;
             document.getElementById('prev-btn').style.display = currentPage > 0 ? 'block' : 'none';
             document.getElementById('next-btn').style.display = currentPage < letterPages.length - 1 ? 'block' : 'none';
@@ -605,17 +763,20 @@
         document.getElementById('next-btn').onclick = () => { if(currentPage < letterPages.length - 1) { currentPage++; renderLetterPage(); } };
         
         document.getElementById('end-btn').onclick = function() {
+            currentGamePhase = 'letter_end_love';
             document.getElementById('letter-layer').classList.remove('show'); safeSetTimeout(() => document.getElementById('letter-layer').style.display = 'none', 1000);
             pauseAllBGM(); isDarkMode = false; document.body.style.backgroundColor = '#E0F7FA'; initParticles();
             let count = 0; const loveInterval = safeSetInterval(() => { createPopup(loveMessages[Math.floor(Math.random() * loveMessages.length)]); count++; if (count >= 20) { clearInterval(loveInterval); safeSetTimeout(startCursedPopups, 1500); } }, 150);
         };
 
         function startCursedPopups() {
+            currentGamePhase = 'cursed';
             clearPopups(); isDarkMode = true; document.body.style.backgroundColor = '#1a1a1a'; initParticles(); 
             let count = 0; const cursedInterval = safeSetInterval(() => { createPopup(darkMessages[Math.floor(Math.random() * darkMessages.length)], true); count++; if (count >= 20) { clearInterval(cursedInterval); safeSetTimeout(startLoveHateWar, 1500); } }, 150);
         }
 
         function startLoveHateWar() {
+            currentGamePhase = 'war';
             clearPopups(); document.body.style.backgroundColor = '#1a1a1a'; isDarkMode = true; initParticles();
             let totalPopups = 250; let current = 0;
             function spawnPopup() {
@@ -630,6 +791,7 @@
         }
 
         function showEnding() {
+            currentGamePhase = 'ending';
             clearPopups(); pauseAllBGM(); document.body.style.backgroundColor = '#E0F7FA'; isDarkMode = false; initParticles(); document.getElementById('pet-widget').style.display = 'none'; 
             const endingLayer = document.getElementById('ending-layer'); const endingText = document.getElementById('ending-text'); const memoryBtn = document.getElementById('memory-btn'); const forgetBtn = document.getElementById('forget-btn');
             endingLayer.style.display = 'flex'; safeSetTimeout(() => endingLayer.classList.add('show'), 50);
@@ -659,6 +821,7 @@
         };
 
         function resumeMainLoopFromEnd() {
+            currentGamePhase = 'pet';
             document.getElementById('ending-layer').classList.remove('show');
             safeSetTimeout(() => { document.getElementById('ending-layer').style.display = 'none'; document.getElementById('ending-text').style.color = '#FF8FAB'; document.getElementById('ending-text').style.textShadow = '0 0 20px rgba(255,143,171,0.4)'; document.body.style.backgroundColor = '#E0F7FA'; }, 1000);
             activatePetWidget(); startFlow();
@@ -745,6 +908,8 @@
 
         // ================= 8. 约会与文游系统 =================
         let currentStoryId = null;
+        let storyHistory = [];
+        let visitedNodes = [];
         let currentNodeId = null;
         let unlockedStories = JSON.parse(localStorage.getItem('jh_unlocked_stories')) || [];
         
@@ -1695,7 +1860,7 @@
             document.getElementById('date-panel').style.display = 'none';
         };
 
-        function renderDatePanel() {}        function renderDatePanel() {
+        function renderDatePanel() {
             const listContainer = document.getElementById('date-list-container'); listContainer.innerHTML = '';
             
             // 【新增】判断是否解锁了所有9个基础剧情
@@ -1771,8 +1936,10 @@
                 document.getElementById('hug-modal').classList.remove('show');
                 document.getElementById('pet-widget').style.display = 'none'; 
                 
-                currentStoryId = storyId; 
-                currentNodeId = 'start';
+               currentStoryId = storyId;
+currentNodeId = 'start';
+storyHistory = []; // 每次新开故事，清空历史
+visitedNodes = []; // 清空已访问节点
                 
                 const storyLayer = document.getElementById('story-layer');
                 storyLayer.style.display = 'block'; 
@@ -1796,6 +1963,11 @@
             currentParaIdx = 0;
             pendingOptions = node.options || [];
             document.getElementById('story-options-container').innerHTML = ''; 
+                        // 记录当前节点看过的剧情
+            if (!visitedNodes.includes(currentNodeId)) {
+                visitedNodes.push(currentNodeId);
+                storyHistory.push({ title: story.name, text: node.text, nodeId: currentNodeId });
+            }
             playCurrentPara();
         }
 
@@ -1883,6 +2055,352 @@
          endStory(); // 直接调用结束逻辑，跳转到“我爱你，也是真的”
      };
 
+     // ================= 9. 存档/读档系统 =================
+// ================= 9. 存档/读档系统 =================
+const SAVE_SLOT_COUNT = 9;
+const SAVE_KEY_PREFIX = 'jh_save_slot_';
+let saveMenuMode = 'save'; // 'save' | 'load'
+
+function getSaveState() {
+    return {
+        affection, recallCount, firstRecall, lastFeedTime, lastHugTime, unlockedStories,
+                    currentStoryId, currentNodeId, currentParaIdx, isInStory: currentStoryId !== null,
+            currentGamePhase, letterPageIndex, phase2ImgIndex, isPhase1Converged, storyHistory, visitedNodes, // 新增记录海报进度和爱心状态
+            timestamp: Date.now()
+    };
+}
+
+function writeSave(slotIndex) {
+    try {
+        localStorage.setItem(SAVE_KEY_PREFIX + slotIndex, JSON.stringify(getSaveState()));
+        return true;
+    } catch (e) { console.error(e); return false; }
+}
+
+function readSave(slotIndex) {
+    try {
+        const raw = localStorage.getItem(SAVE_KEY_PREFIX + slotIndex);
+        return raw ? JSON.parse(raw) : null;
+    } catch (e) { return null; }
+}
+
+function applySave(state) {
+    // 1. 恢复数值
+        isPhase1Converged = state.isPhase1Converged || false;
+    affection = state.affection ?? 20;
+    recallCount = state.recallCount ?? 0;
+    firstRecall = state.firstRecall ?? false;
+    lastFeedTime = state.lastFeedTime ?? 0;
+    lastHugTime = state.lastHugTime ?? 0;
+    unlockedStories = state.unlockedStories || [];
+    currentGamePhase = state.currentGamePhase || 'idle';
+    letterPageIndex = state.letterPageIndex || 0;
+        phase2ImgIndex = state.phase2ImgIndex || 1; 
+            storyHistory = state.storyHistory || [];
+    visitedNodes = state.visitedNodes || [];// 恢复海报进度
+
+    localStorage.setItem('jh_affection', affection);
+    localStorage.setItem('fengqingyan_recall_count', recallCount);
+    localStorage.setItem('jh_first_recall', firstRecall);
+    localStorage.setItem('jh_last_feed', lastFeedTime);
+    localStorage.setItem('jh_last_hug', lastHugTime);
+    localStorage.setItem('jh_unlocked_stories', JSON.stringify(unlockedStories));
+    updateAffectionUI();
+
+    // 2. 清空所有覆盖层
+    clearAllGlobalTimers();
+    clearPopups();
+    pauseAllBGM();
+    document.querySelectorAll('#image-layer, #proposal-layer, #letter-layer, #ending-layer, #story-layer, #date-panel').forEach(el => {
+        el.classList.remove('show');
+        el.style.display = 'none';
+    });
+    document.getElementById('hug-modal').classList.remove('show');
+    document.getElementById('action-panel').style.display = 'none';
+    document.getElementById('pet-menu').classList.remove('show');
+    document.getElementById('btn-phase2').classList.remove('show');
+    document.getElementById('btn-phase3').classList.remove('show');
+    const oldPopup = document.getElementById('start-popup');
+    if (oldPopup) oldPopup.remove();
+
+    isDarkMode = false;
+    document.body.style.backgroundColor = '#E0F7FA';
+    initParticles();
+
+    // 3. 如果是文游存档
+    if (state.isInStory && state.currentStoryId && state.currentNodeId) {
+        const story = DATE_STORIES[state.currentStoryId];
+        const node = story && story.nodes[state.currentNodeId];
+        if (node) {
+            currentStoryId = state.currentStoryId;
+            currentNodeId = state.currentNodeId;
+            const dateBgm = document.getElementById('bgm_date');
+            if (dateBgm) { dateBgm.currentTime = 0; dateBgm.play().catch(e => {}); }
+            document.getElementById('pet-widget').style.display = 'none';
+            const storyLayer = document.getElementById('story-layer');
+            storyLayer.style.display = 'block';
+            storyLayer.classList.add('show');
+            document.getElementById('story-title-text').textContent = story.name;
+            textParagraphs = node.text.split('\n\n').filter(p => p.trim() !== '');
+            currentParaIdx = Math.min(state.currentParaIdx || 0, textParagraphs.length - 1);
+            pendingOptions = node.options || [];
+            document.getElementById('story-options-container').innerHTML = '';
+            playCurrentPara();
+            return;
+        }
+    }
+
+    // 4. 如果是原流程
+        
+    currentStoryId = null;
+    currentNodeId = null;
+        // 【新增】根据阶段恢复 BGM
+    if (currentGamePhase && currentGamePhase.includes('phase1')) {
+        const b = document.getElementById('bgm1'); if(b){b.currentTime = 0; b.play().catch(e=>{});}
+    } else if (currentGamePhase === 'phase2' || currentGamePhase === 'dark') {
+        const b = document.getElementById('bgm2'); if(b){b.currentTime = 0; b.play().catch(e=>{});}
+    } else if (currentGamePhase && currentGamePhase.includes('letter')) {
+        const b = document.getElementById('bgm3'); if(b){b.currentTime = 0; b.play().catch(e=>{});}
+    }
+
+    if (currentGamePhase === 'pet') {
+        document.getElementById('typewriter').style.opacity = '0';
+        activatePetWidget();
+    } 
+       else if (currentGamePhase === 'phase1') {
+        document.getElementById('typewriter').style.opacity = '0';
+        startPhase1();
+    } 
+    else if (currentGamePhase === 'phase1_done') {
+        document.getElementById('typewriter').style.opacity = '0';
+        
+        // 瞬间还原爱心状态
+        clearPopups();
+        const cx = window.innerWidth / 2; const cy = window.innerHeight / 2 - 30; const scale = Math.min(window.innerWidth, window.innerHeight) / 35; 
+        let heartConfigs = [];
+        for (let i = 0; i < 30; i++) {
+            let t = i * (2 * Math.PI) / 30; let x = 16 * Math.pow(Math.sin(t), 3); let y = 13 * Math.cos(t) - 5 * Math.cos(2*t) - 2 * Math.cos(3*t) - Math.cos(4*t);
+            const targetW = isMobile ? 90 : 130; heartConfigs.push({ left: cx + x * scale - targetW / 2, top: cy - y * scale - 40, w: targetW });
+        }
+        
+        // 生成 30 个定位好的弹窗
+        for (let i = 0; i < 30; i++) {
+            let win = createPopup(loveMessages[i % loveMessages.length], false);
+            const conf = heartConfigs[i];
+            win.style.width = conf.w + 'px';
+            win.style.left = conf.left + 'px';
+            win.style.top = conf.top + 'px';
+            win.querySelector('.popup-content').style.fontSize = '11px';
+        }
+        
+        // 生成中间的弹窗和按钮
+        createPopup("风清雁，我不逃婚了，<br>小爷要和你成亲！", false, cx - (isMobile ? 80 : 100), cy - 40, isMobile ? 160 : 200, 80);
+        safeSetTimeout(() => { document.getElementById('btn-phase2').classList.add('show'); }, 500);
+    }
+    else if (currentGamePhase === 'phase2') {
+        document.getElementById('typewriter').style.opacity = '0';
+        startPhase2();
+    } 
+    else if (currentGamePhase === 'dark') {
+        document.getElementById('typewriter').style.opacity = '0';
+        startDarkPopups();
+    }
+    else if (currentGamePhase === 'proposal') {
+        document.getElementById('typewriter').style.opacity = '0';
+        showProposal();
+    } 
+    else if (currentGamePhase === 'post_proposal') {
+        const tw = document.getElementById('typewriter');
+        tw.style.opacity = '1'; tw.textContent = "风清雁，和我成亲，我爹就是你爹";
+        document.getElementById('btn-phase3').classList.add('show');
+    } 
+    else if (currentGamePhase === 'letter') {
+        document.getElementById('typewriter').style.opacity = '0';
+        document.getElementById('letter-layer').style.display = 'flex'; 
+        document.getElementById('letter-layer').classList.add('show');
+        currentPage = letterPageIndex;
+        renderLetterPage();
+    } 
+    else if (currentGamePhase === 'letter_end_love') {
+        document.getElementById('typewriter').style.opacity = '0';
+        document.getElementById('end-btn').click();
+    }
+    else if (currentGamePhase === 'cursed') {
+        document.getElementById('typewriter').style.opacity = '0';
+        startCursedPopups();
+    }
+    else if (currentGamePhase === 'war') {
+        document.getElementById('typewriter').style.opacity = '0';
+        startLoveHateWar();
+    }
+    else if (currentGamePhase === 'ending') {
+        showEnding();
+    } 
+    else {
+        const tw = document.getElementById('typewriter');
+        tw.style.opacity = '1';
+        tw.style.color = '#FF8FAB';
+        tw.style.fontSize = 'clamp(18px, 5vw, 26px)';
+        tw.textContent = '存档已读取\n\n欢迎回来，北地笨猪';
+        if (firstRecall) activatePetWidget();
+        else document.getElementById('pet-widget').style.display = 'none';
+
+        safeSetTimeout(() => {
+            const startPopup = document.createElement('div'); 
+            startPopup.className = 'special-window show'; 
+            startPopup.id = 'start-popup';
+            startPopup.innerHTML = `<h2>准备好听小爷说话了吗？</h2><button class="special-btn" id="start-btn">点我</button>`;
+            document.body.appendChild(startPopup);
+            document.getElementById('start-btn').addEventListener('click', startPhase1);
+        }, 1500);
+    }
+}
+
+function formatSaveTime(ts) {
+    const d = new Date(ts), pad = n => String(n).padStart(2, '0');
+    return `${d.getMonth()+1}/${d.getDate()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+function renderSaveSlots() {
+    const container = document.getElementById('save-slots-container');
+    container.innerHTML = '';
+    
+    // 补全阶段名称
+    const phaseNames = {
+        'idle': '主页初始', 'pet': '主界面', 'phase1': '爱心汇聚', 
+        'phase2': '海报轮播', 'dark': '黑化警告', 'proposal': '求婚现场', 'post_proposal': '成亲约定',
+        'letter': '绝笔信', 'letter_end_love': '信后弹窗', 'cursed': '诅咒弹窗', 'war': '爱恨大战', 'ending': '大结局'
+    };
+
+    for (let i = 0; i < SAVE_SLOT_COUNT; i++) {
+        const state = readSave(i);
+        const slot = document.createElement('div');
+
+        if (state) {
+            slot.className = 'save-slot';
+            let sceneName = '';
+            
+            if (state.isInStory && state.currentStoryId && DATE_STORIES[state.currentStoryId]) {
+                sceneName = `约会:${DATE_STORIES[state.currentStoryId].name}`;
+            } else {
+                sceneName = phaseNames[state.currentGamePhase] || '主界面';
+            }
+            
+            const paraInfo = state.isInStory ? ` (第${(state.currentParaIdx||0)+1}段)` : '';
+            slot.innerHTML = `
+                <div class="save-slot-title">档位 ${i + 1}</div>
+                <div class="save-slot-info">
+                    ${sceneName}${paraInfo}<br>
+                    好感度: ${state.affection}<br>
+                    ${formatSaveTime(state.timestamp)}
+                </div>`;
+        } else {
+            slot.className = 'save-slot empty';
+            slot.innerHTML = `<div class="save-slot-title">档位 ${i + 1}</div><div class="save-slot-info">空</div>`;
+        }
+
+        slot.onclick = function(e) {
+            e.stopPropagation();
+            if (saveMenuMode === 'save') {
+                if (state && !confirm(`档位 ${i+1} 已有存档，确定覆盖吗？`)) return;
+                if (writeSave(i)) {
+                    renderSaveSlots();
+                    const newSlot = container.children[i];
+                    newSlot.style.background = '#C8E6C9';
+                    safeSetTimeout(() => { if (newSlot) newSlot.style.background = ''; }, 600);
+                }
+            } else {
+                if (!state) { alert(`档位 ${i+1} 是空的，无法读取`); return; }
+                if (!confirm(`确定读取档位 ${i+1} 吗？\n当前未保存的进度将丢失。`)) return;
+                applySave(state);
+                closeSaveMenu();
+            }
+        };
+        container.appendChild(slot);
+    }
+}
+
+function openSaveMenu() {
+    const btnHistory = document.getElementById('btn-history-mode');
+    if (currentStoryId !== null) {
+        btnHistory.style.display = 'block';
+    } else {
+        btnHistory.style.display = 'none';
+    }
+    
+    document.getElementById('btn-save-mode').click();
+    document.getElementById('save-menu-overlay').classList.add('show');
+    const panel = document.getElementById('save-menu-panel');
+    panel.style.display = 'flex';
+    safeSetTimeout(() => panel.classList.add('show'), 20);
+}
+
+function closeSaveMenu() {
+    document.getElementById('save-menu-overlay').classList.remove('show');
+    const panel = document.getElementById('save-menu-panel');
+    panel.classList.remove('show');
+    document.querySelector('.save-slots').style.display = 'grid';
+    document.getElementById('history-container').style.display = 'none';
+    safeSetTimeout(() => { panel.style.display = 'none'; }, 300);
+}
+
+// 事件绑定
+document.getElementById('save-menu-btn').onclick = e => { e.stopPropagation(); openSaveMenu(); };
+document.getElementById('save-menu-close-btn').onclick = e => { e.stopPropagation(); closeSaveMenu(); };
+document.getElementById('save-menu-overlay').onclick = closeSaveMenu;
+document.getElementById('btn-save-mode').onclick = function(e) {
+    e.stopPropagation();
+    saveMenuMode = 'save';
+    this.classList.add('active');
+    document.getElementById('btn-load-mode').classList.remove('active');
+    document.getElementById('btn-history-mode').classList.remove('active');
+    document.querySelector('.save-slots').style.display = 'grid';
+    document.getElementById('history-container').style.display = 'none';
+    renderSaveSlots();
+};
+
+document.getElementById('btn-load-mode').onclick = function(e) {
+    e.stopPropagation();
+    saveMenuMode = 'load';
+    this.classList.add('active');
+    document.getElementById('btn-save-mode').classList.remove('active');
+    document.getElementById('btn-history-mode').classList.remove('active');
+    document.querySelector('.save-slots').style.display = 'grid';
+    document.getElementById('history-container').style.display = 'none';
+    renderSaveSlots();
+};
+
+// 新增：回顾按钮点击事件
+document.getElementById('btn-history-mode').onclick = function(e) {
+    e.stopPropagation();
+    this.classList.add('active');
+    document.getElementById('btn-save-mode').classList.remove('active');
+    document.getElementById('btn-load-mode').classList.remove('active');
+    
+    document.querySelector('.save-slots').style.display = 'none';
+    const container = document.getElementById('history-container');
+    container.style.display = 'block';
+    
+    container.innerHTML = '';
+    if (storyHistory.length === 0) {
+        container.innerHTML = '<div style="text-align:center; color:#999; margin-top:20px;">暂无剧情回顾</div>';
+    } else {
+                storyHistory.forEach(item => {
+            let textToShow = item.text;
+            
+            // 【修复】防止剧透：如果当前查看的正是你正在阅读的节点
+            if (item.nodeId === currentNodeId) {
+                // 拆分成段落，只保留当前已经展示出来的段落
+                let paras = item.text.split('\n\n').filter(p => p.trim() !== '');
+                textToShow = paras.slice(0, currentParaIdx + 1).join('\n\n');
+            }
+            
+            let textHtml = textToShow.replace(/\n/g, '<br>');
+            container.innerHTML += `<div style="margin-bottom:20px; padding-bottom:10px; border-bottom:1px dashed #FFB7C5;">${textHtml}</div>`;
+        });
+        container.scrollTop = container.scrollHeight;
+    }
+};
         // 启动主流程
         startFlow();
     </script>
