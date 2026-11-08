@@ -932,6 +932,7 @@
 
         function showEnding() {
             currentGamePhase = 'ending';
+            pauseAllBGM();
             clearPopups(); pauseAllBGM(); document.getElementById('main-bg-mask').style.backgroundColor = 'rgba(224, 247, 250, 0.85)'; isDarkMode = false; initParticles(); document.getElementById('pet-widget').style.display = 'none'; 
             const endingLayer = document.getElementById('ending-layer'); const endingText = document.getElementById('ending-text'); const memoryBtn = document.getElementById('memory-btn'); const forgetBtn = document.getElementById('forget-btn');
             endingLayer.style.display = 'flex'; safeSetTimeout(() => endingLayer.classList.add('show'), 50);
