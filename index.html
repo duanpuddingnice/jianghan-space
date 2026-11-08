@@ -49,13 +49,13 @@
             pointer-events: none !important;
         }
         /* ================== 原流程弹窗 ================== */
-                             #main-bg-mask {
+                      #main-bg-mask {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             z-index: 0; 
             transition: background 2s ease; 
             pointer-events: none;
-            /* 👇 调低了透明度，让背景图透出来 👇 */
-            background: linear-gradient(to bottom, rgba(224, 247, 250, 0.3), rgba(255, 255, 255, 0.1));
+            /* 👇 把透明度降到极低，几乎完全透出背景图 */
+            background: linear-gradient(to bottom, rgba(224, 247, 250, 0.1), rgba(255, 255, 255, 0.05));
         }
               .popup-window {
             position: absolute; background-color: #FFB7C5; border: 1px solid rgba(255,255,255,0.8); border-radius: 8px;
@@ -193,7 +193,22 @@
         .panel-title { font-weight: bold; color: #FF69B4; margin-bottom: 10px; font-size: clamp(13px, 3.5vw, 15px); text-align: center;}
 
         /* ================== 约会面板 ================== */
-        #date-panel { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: min(90vw, 600px); max-height: 80vh; background: rgba(255, 255, 255, 0.98); border-radius: 15px; padding: 20px; box-shadow: 0 10px 40px rgba(0,0,0,0.3); z-index: 100002; display: none; flex-direction: column; pointer-events: auto; }
+                #date-panel { 
+            position: absolute; 
+            top: 55%; /* 👈 改成了 55%，往下挪一点，避开右上角按钮 */
+            left: 50%; 
+            transform: translate(-50%, -50%); 
+            width: min(90vw, 600px); 
+            max-height: 80vh; 
+            background: rgba(255, 255, 255, 0.98); 
+            border-radius: 15px; 
+            padding: 20px; 
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3); 
+            z-index: 999999999; /* 👈 层级拉到最高，绝对盖住其它按钮 */
+            display: none; 
+            flex-direction: column; 
+            pointer-events: auto; 
+        }
         #date-panel.show { display: flex !important; }
         .date-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; border-bottom: 2px solid #FFB7C5; padding-bottom: 10px; }
         .date-title { font-size: clamp(18px, 5vw, 22px); font-weight: bold; color: #FF69B4; }
@@ -1303,18 +1318,18 @@
 
                 // ================= 2. 全新的天气与背景粒子系统 =================
         window.WeatherSystem = (function() {
-            const canvas = document.getElementById('bg-canvas');
-            const ctx = canvas.getContext('2d');
+                       const canvas = document.getElementById('bg-canvas');
+            const ctx = canvas ? canvas.getContext('2d') : null;
             const mask = document.getElementById('main-bg-mask');
             let width, height, particles = [];
             let currentState = 'day'; // 'day' | 'dusk' | 'night'
             let animId = null;
             let isPaused = false;
 
-            const gradients = {
-                'day': 'linear-gradient(to bottom, rgba(224, 247, 250, 0.3), rgba(255, 255, 255, 0.1))',
-                'dusk': 'linear-gradient(to bottom, rgba(255, 183, 197, 0.5), rgba(255, 140, 0, 0.4))',
-                'night': 'linear-gradient(to bottom, rgba(15, 15, 25, 0.85), rgba(25, 25, 45, 0.7))'
+                        const gradients = {
+                'day': 'linear-gradient(to bottom, rgba(224, 247, 250, 0.1), rgba(255, 255, 255, 0.05))', // 白天降低白度，透出底图
+                'dusk': 'linear-gradient(to bottom, rgba(255, 183, 197, 0.4), rgba(255, 140, 0, 0.3))', 
+                'night': 'linear-gradient(to bottom, rgba(15, 15, 25, 0.8), rgba(25, 25, 45, 0.6))'
             };
 
             function resize() { width = canvas.width = window.innerWidth; height = canvas.height = window.innerHeight; }
@@ -1345,7 +1360,7 @@
                         this.speedY = Math.random() * 1.0 + 0.4;
                         this.speedX = Math.random() * 0.8 - 0.2;
                         this.rotSpeed = (Math.random() - 0.5) * 0.05;
-                        this.color = ['#FFB7C5', '#FFC0CB', '#FFD1DC'][Math.floor(Math.random() * 3)];
+                        this.color = ['#FF1493', '#FF69B4', '#FF85C1'][Math.floor(Math.random() * 3)];
                     }
                 }
                 update() { 
@@ -1385,8 +1400,8 @@
                 for (let i = 0; i < 80; i++) particles.push(new WeatherParticle(type));
             }
 
-            function loop() {
-                if (isPaused) return;
+                            function loop() {
+                if (isPaused || !ctx || !canvas) return; // 👈 如果 Canvas 不存在直接跳过
                 ctx.clearRect(0, 0, width, height); 
                 particles.forEach(p => { p.update(); p.draw(); });
                 animId = requestAnimationFrame(loop);
@@ -1395,8 +1410,8 @@
             // 核心：设置天气
             function setWeather(state) {
                 currentState = state;
-                // 1. 切换背景渐变（覆盖掉原来代码里的 backgroundColor）
-                mask.style.background = gradients[state];
+                if (mask) mask.style.background = gradients[state]; // 👈 加上 if 保护
+                // 1. 切换背景渐变（覆盖掉原来代码里的 backgroundColo
                 
                 // 2. 初始化对应的粒子
                 let pType = 'sakura';
@@ -1422,13 +1437,11 @@
             }
 
             // 暴露方法给外部
-            return {
+                   return {
                 init: function() {
-                    checkTime();
+                    setWeather('day'); 
                     if (!animId) loop();
-                    // 每分钟检查一次时间
                     safeSetInterval(checkTime, 60000); 
-                    
                 },
                 pause: function() {
                     isPaused = true;
@@ -1440,8 +1453,9 @@
                         isPaused = false;
                         if (!animId) loop();
                     }
-                }
-            };
+                }, // 👈 注意：这里是英文逗号！
+                setWeather: setWeather // 👈 把它放进对象里面
+            }; // 👈 最后再用这个闭合
         })();
 
         // 启动天气系统
@@ -1517,46 +1531,61 @@
         }
 
         function clearPopups() { allPopups.forEach(win => { win.classList.remove('show'); safeSetTimeout(() => win.remove(), 300); }); allPopups = []; }
-        function pauseAllBGM() { ['bgm1', 'bgm2', 'bgm3'].forEach(id => { const audio = document.getElementById(id); audio.pause(); audio.currentTime = 0; }); }
+               function pauseAllBGM() { 
+            ['bgm1', 'bgm2', 'bgm3'].forEach(id => { 
+                const audio = document.getElementById(id); 
+                if (audio) { // 👈 加上判断，找不到音频也不报错
+                    try {
+                        audio.pause(); 
+                        audio.currentTime = 0; 
+                    } catch(e) {}
+                }
+            }); 
+        }
 
         // ================= 3. 主流程控制 =================
-        window.startFlow = function() {
-            // 【新增】恢复天气粒子
-            window.WeatherSystem.resume();
-            currentGamePhase = 'idle';
-            pauseAllBGM(); clearPopups(); isDarkMode = false; window.WeatherSystem.setWeather('day'); 
-            
-            document.getElementById('date-panel').classList.remove('show');
-            document.getElementById('date-panel').style.display = 'none'; 
-            const sl = document.getElementById('story-layer'); sl.classList.remove('show'); sl.style.display = 'none';
-            document.querySelectorAll('#letter-layer, #ending-layer, #proposal-layer, #image-layer').forEach(el => {
-                el.classList.remove('show'); el.style.display = 'none';
-            });
-            document.getElementById('btn-phase2').classList.remove('show');
-            document.getElementById('btn-phase3').classList.remove('show');
-            
-            // 【修复】：去掉强制隐藏小人，改为根据 firstRecall 判断
-            if (firstRecall) { activatePetWidget(); } else { document.getElementById('pet-widget').style.display = 'none'; }
-            
-            const typewriterEl = document.getElementById('typewriter');
-            typewriterEl.style.opacity = '1'; typewriterEl.style.color = '#FF8FAB'; typewriterEl.style.fontSize = 'clamp(18px, 5vw, 26px)';
-            
-            let textStr = "北地笨猪\n\n好久不见\n\n准备好听小爷说话了吗？";
-            if (recallCount > 0) { textStr = "北地笨猪\n\n你怎么又点开了？\n\n是不是舍不得小爷？"; }
-            typewriterEl.textContent = "";
-            
-            let charIdx = 0;
-            function typeWriter() {
-                if (charIdx < textStr.length) {
-                    typewriterEl.textContent = textStr.substring(0, charIdx + 1); charIdx++; safeSetTimeout(typeWriter, 100);
-                } else {
-                    const startPopup = document.createElement('div'); startPopup.className = 'special-window show'; startPopup.id = 'start-popup';
-                    startPopup.innerHTML = `<h2>准备好听小爷说话了吗？</h2><button class="special-btn" id="start-btn">点我</button>`;
-                    document.body.appendChild(startPopup);
-                    document.getElementById('start-btn').addEventListener('click', startPhase1);
+               window.startFlow = function() {
+            try {
+                window.WeatherSystem.resume();
+                currentGamePhase = 'idle';
+                pauseAllBGM(); clearPopups(); isDarkMode = false; window.WeatherSystem.setWeather('day'); 
+                
+                document.getElementById('date-panel').classList.remove('show');
+                document.getElementById('date-panel').style.display = 'none'; 
+                const sl = document.getElementById('story-layer'); sl.classList.remove('show'); sl.style.display = 'none';
+                document.querySelectorAll('#letter-layer, #ending-layer, #proposal-layer, #image-layer').forEach(el => {
+                    el.classList.remove('show'); el.style.display = 'none';
+                });
+                document.getElementById('btn-phase2').classList.remove('show');
+                document.getElementById('btn-phase3').classList.remove('show');
+                
+                if (firstRecall) { activatePetWidget(); } else { document.getElementById('pet-widget').style.display = 'none'; }
+                
+                const typewriterEl = document.getElementById('typewriter');
+                typewriterEl.style.opacity = '1'; typewriterEl.style.color = '#FF8FAB'; typewriterEl.style.fontSize = 'clamp(18px, 5vw, 26px)';
+                
+                let textStr = "北地笨猪\n\n好久不见\n\n准备好听小爷说话了吗？";
+                if (recallCount > 0) { textStr = "北地笨猪\n\n你怎么又点开了？\n\n是不是舍不得小爷？"; }
+                typewriterEl.textContent = "";
+                
+                const oldPopup = document.getElementById('start-popup');
+                if (oldPopup) oldPopup.remove();
+
+                let charIdx = 0;
+                function typeWriter() {
+                    if (charIdx < textStr.length) {
+                        typewriterEl.textContent = textStr.substring(0, charIdx + 1); charIdx++; safeSetTimeout(typeWriter, 100);
+                    } else {
+                        const startPopup = document.createElement('div'); startPopup.className = 'special-window show'; startPopup.id = 'start-popup';
+                        startPopup.innerHTML = `<h2>准备好听小爷说话了吗？</h2><button class="special-btn" id="start-btn">点我</button>`;
+                        document.body.appendChild(startPopup);
+                        document.getElementById('start-btn').addEventListener('click', startPhase1);
+                    }
                 }
+                safeSetTimeout(typeWriter, 500);
+            } catch(e) { 
+                console.error("主流程加载报错", e); 
             }
-            safeSetTimeout(typeWriter, 500);
         }
 
                 function startPhase1() {
@@ -1802,7 +1831,7 @@
             };
             memoryBtn.onclick = function() { recallCount++; localStorage.setItem('fengqingyan_recall_count', recallCount); handleRecallClick(); };
             forgetBtn.onclick = function() { 
-                memoryBtn.style.display = 'none'; forgetBtn.style.display = 'none'; document.getElementById('main-bg-mask').style.backgroundColor = 'rgba(0, 0, 0, 0.95)'; endingText.style.color = '#ff0000'; endingText.style.textShadow = '0 0 20px #ff0000'; endingText.textContent = "风清雁，你生生世世都忘不了我,\n别白费力气了.\n不过可以多想想我.";
+                memoryBtn.style.display = 'none'; forgetBtn.style.display = 'none';// document.getElementById('main-bg-mask').style.backgroundColor = 'rgba(0, 0, 0, 0.95)'; endingText.style.color = '#ff0000'; endingText.style.textShadow = '0 0 20px #ff0000'; endingText.textContent = "风清雁，你生生世世都忘不了我,\n别白费力气了.\n不过可以多想想我.";
                 pauseAllBGM(); safeSetTimeout(handleRecallClick, 3500);
             };
         }
@@ -1931,7 +1960,8 @@
   
         let storyHistory = [];
         let visitedNodes = [];
-        let unlockedStories = JSON.parse(localStorage.getItem('jh_unlocked_stories')) || [];
+                let unlockedStories = [];
+        try { unlockedStories = JSON.parse(localStorage.getItem('jh_unlocked_stories')) || []; } catch(e) {}
         
         let typewriterTimer = null;
         let isTyping = false;
@@ -2876,49 +2906,50 @@
         };
         // 👇👇👇 把新按钮贴在这里 👇👇👇
                    // 修复大厅点击失效问题，使用 pointerdown 并且阻止冒泡
+        // 游戏厅入口按钮
     const btnPlayJump = document.getElementById('btn-play-jump');
     if (btnPlayJump) {
         btnPlayJump.onclick = function(e) {
             e.stopPropagation();
             document.getElementById('pet-menu').classList.remove('show');
-            window.WeatherSystem.pause();
+            if (window.WeatherSystem) window.WeatherSystem.pause();
             clearPopups();
             isDarkMode = false;
             document.getElementById('game-hall-layer').style.display = 'flex';
         };
     }
 
-    // 独立分离的卡片点击事件
-    document.getElementById('hall-select-jump').addEventListener('pointerdown', function(e) {
-        e.preventDefault(); e.stopPropagation();
-        document.getElementById('game-hall-layer').style.display = 'none';
-        window.JumpGame.start();
-    });
-        // 新增：退出大厅按钮逻辑
+    // ================= 游戏大厅卡片点击事件（独立且安全） =================
+    const jumpCard = document.getElementById('hall-select-jump');
+    if (jumpCard) {
+        jumpCard.addEventListener('pointerdown', function(e) {
+            e.preventDefault(); e.stopPropagation();
+            document.getElementById('game-hall-layer').style.display = 'none';
+            try { if (window.JumpGame) window.JumpGame.start(); } catch(err) { console.error(err); }
+        });
+    }
+
     const exitHallBtn = document.getElementById('exit-hall-btn');
     if (exitHallBtn) {
         exitHallBtn.onclick = function(e) {
             e.stopPropagation();
             document.getElementById('game-hall-layer').style.display = 'none';
-            window.WeatherSystem.resume(); // 恢复天气，防止粒子不动
+            try { if (window.WeatherSystem) window.WeatherSystem.resume(); } catch(err) {}
         };
     }
 
-    document.getElementById('hall-select-2048').addEventListener('pointerdown', function(e) {
-        e.preventDefault(); e.stopPropagation();
-        document.getElementById('game-hall-layer').style.display = 'none';
-        window.Game2048.start();
-    });
+    const card2048 = document.getElementById('hall-select-2048');
+    if (card2048) {
+        card2048.addEventListener('pointerdown', function(e) {
+            e.preventDefault(); e.stopPropagation();
+            document.getElementById('game-hall-layer').style.display = 'none';
+            try { if (window.Game2048) window.Game2048.start(); } catch(err) { console.error(err); }
+        });
+    }
 
-    document.getElementById('hall-select-claw').addEventListener('pointerdown', function(e) {
-        e.preventDefault(); e.stopPropagation();
-        document.getElementById('game-hall-layer').style.display = 'none';
-        // 强制移除可能挡住它的层级
-        document.getElementById('game-2048-layer').style.display = 'none';
-        document.getElementById('game-center-layer').style.display = 'none';
-        window.ClawMachine.start();
-    });
+    const cardClaw = document.getElementById('hall-select-claw');
 
+    // =====================================================================
         function renderDatePanel() {
             const listContainer = document.getElementById('date-list-container'); listContainer.innerHTML = '';
             
@@ -3920,7 +3951,6 @@ const EMOJI_LIST = ['🐷', '🐰', '🐼', '🦊', '🐱', '🐶', '🐸', '�
     document.getElementById('restart-game-btn').onclick = () => initGameData();
         document.getElementById('exit-game-btn').onclick = () => { isPlaying = false; gameCenterLayer.style.display = 'none'; document.getElementById('game-hall-layer').style.display = 'flex'; };
     document.getElementById('back-menu-btn').onclick = () => { gameCenterLayer.style.display = 'none'; document.getElementById('game-hall-layer').style.display = 'flex'; };
-    document.getElementById('back-menu-btn').onclick = () => { gameCenterLayer.style.display = 'none'; };
     
     canvas.addEventListener('pointerdown', startCharge);
     canvas.addEventListener('pointerup', releaseCharge);
@@ -3992,43 +4022,39 @@ const EMOJI_LIST = ['🐷', '🐰', '🐼', '🦊', '🐱', '🐶', '🐸', '�
         }
 
         // 核心应用特效函数
-        function applyAccessory(equipped) {
-            const avatar = document.getElementById('jianghan-avatar');
-            const accEl = document.getElementById('avatar-accessory');
-            
-            // 1. 处理 Emoji 挂件
-            if (equipped.accessory && ALL_ITEMS[equipped.accessory]) {
-                accEl.innerText = ALL_ITEMS[equipped.accessory].emoji;
-                accEl.style.display = 'block';
-            } else {
-                accEl.style.display = 'none';
-            }
-
-            // 2. 处理头像框
-            if (equipped.frame === 'frame_rainbow') {
-                avatar.classList.add('frame-rainbow');
-            } else {
-                avatar.classList.remove('frame-rainbow');
-            }
-
-            // 3. 处理名字发光（这里以主界面左上角好感度框的名字为例）
-            const nameLabel = document.querySelector('#affection-container');
-            if (equipped.effect === 'name_glow' && nameLabel) {
-                nameLabel.classList.add('name-glow');
-            } else if (nameLabel) {
-                nameLabel.classList.remove('name-glow');
-            }
-
-            // 4. 处理跳一跳皮肤
-            if (equipped.skin && ALL_ITEMS[equipped.skin]) {
-                if (window.JumpGame && window.JumpGame.setSkinColor) {
-                    window.JumpGame.setSkinColor(ALL_ITEMS[equipped.skin].color);
+               function applyAccessory(equipped) {
+            try {
+                const avatar = document.getElementById('jianghan-avatar');
+                const accEl = document.getElementById('avatar-accessory');
+                if (!avatar || !accEl) return; // 👈 找不到元素直接返回，绝不报错
+                
+                if (equipped && equipped.accessory && ALL_ITEMS[equipped.accessory]) {
+                    accEl.innerText = ALL_ITEMS[equipped.accessory].emoji;
+                    accEl.style.display = 'block';
+                } else {
+                    accEl.style.display = 'none';
                 }
-            } else {
-                if (window.JumpGame && window.JumpGame.setSkinColor) {
-                    window.JumpGame.setSkinColor('#FF69B4'); // 默认粉色
+                if (equipped && equipped.frame === 'frame_rainbow') {
+                    avatar.classList.add('frame-rainbow');
+                } else {
+                    avatar.classList.remove('frame-rainbow');
                 }
-            }
+                const nameLabel = document.querySelector('#affection-container');
+                if (equipped && equipped.effect === 'name_glow' && nameLabel) {
+                    nameLabel.classList.add('name-glow');
+                } else if (nameLabel) {
+                    nameLabel.classList.remove('name-glow');
+                }
+                if (equipped && equipped.skin && ALL_ITEMS[equipped.skin]) {
+                    if (window.JumpGame && window.JumpGame.setSkinColor) {
+                        window.JumpGame.setSkinColor(ALL_ITEMS[equipped.skin].color);
+                    }
+                } else {
+                    if (window.JumpGame && window.JumpGame.setSkinColor) {
+                        window.JumpGame.setSkinColor('#FF69B4');
+                    }
+                }
+            } catch(e) { console.error(e); }
         }
 
         // ================= 背包系统 =================
@@ -4038,7 +4064,8 @@ const EMOJI_LIST = ['🐷', '🐰', '🐼', '🦊', '🐱', '🐶', '🐸', '�
             const fragsEl = document.getElementById('inv-frags');
 
             function render() {
-                const inv = JSON.parse(localStorage.getItem('jh_inventory')) || [];
+                                let inv = [];
+                try { inv = JSON.parse(localStorage.getItem('jh_inventory')) || []; } catch(e) {}
                 const equipped = getEquipped();
                 fragsEl.innerText = localStorage.getItem('jh_fragments') || 0;
                 grid.innerHTML = '';
@@ -4106,7 +4133,8 @@ const EMOJI_LIST = ['🐷', '🐰', '🐼', '🦊', '🐱', '🐶', '🐸', '�
             let coins = parseInt(localStorage.getItem('jh_coins')) || 0;
             let fragments = parseInt(localStorage.getItem('jh_fragments')) || 0;
             let lastFreeTime = parseInt(localStorage.getItem('jh_last_free_time')) || 0;
-            let inventory = JSON.parse(localStorage.getItem('jh_inventory')) || [];
+                        let inventory = [];
+            try { inventory = JSON.parse(localStorage.getItem('jh_inventory')) || []; } catch(e) {}
 
             // UI 元素
             const layer = document.getElementById('gacha-layer');
@@ -4325,8 +4353,8 @@ const EMOJI_LIST = ['🐷', '🐰', '🐼', '🦊', '🐱', '🐶', '🐸', '�
             let currentTab = 'quotes'; // 'quotes' | 'stories'
 
             // 获取已存的未说出口的话
-            function getSavedQuotes() {
-                return JSON.parse(localStorage.getItem('jh_gallery_quotes')) || [];
+                function getSavedQuotes() {
+                try { return JSON.parse(localStorage.getItem('jh_gallery_quotes')) || []; } catch(e) { return []; }
             }
 
             // 添加情话（抽卡时调用）
@@ -4621,7 +4649,8 @@ document.getElementById('btn-leaderboard').onclick = function(e) {
             ];
 
             // 读取存档数据
-            let data = JSON.parse(localStorage.getItem('jh_achievements')) || {};
+                        let data = {};
+            try { data = JSON.parse(localStorage.getItem('jh_achievements')) || {}; } catch(e) {}
             
             function saveData() {
                 localStorage.setItem('jh_achievements', JSON.stringify(data));
