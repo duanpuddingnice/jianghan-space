@@ -1867,10 +1867,14 @@
 
         function activatePetWidget() { petWidget.style.display = 'flex'; updateAffectionUI(); }
         
-        function updateAffectionUI() {
+               function updateAffectionUI() {
             document.getElementById('affection-val').textContent = affection;
             let percent = (affection / 150) * 100; if(percent > 100) percent = 100; if(percent < 0) percent = 0;
-            document.getElementById('affection-fill').style.width = percent + '%'; document.getElementById('affection-fill').style.background = affection <= 0 ? '#ff0000' : '#FF69B4';
+            document.getElementById('affection-fill').style.width = percent + '%'; 
+            document.getElementById('affection-fill').style.background = affection <= 0 ? '#ff0000' : '#FF69B4';
+            
+            // 👇 核心修复：每次更新界面，必定同步保存到本地！
+            localStorage.setItem('jh_affection', affection);
         }
 
         function showPetDialog(text) {
@@ -1917,14 +1921,18 @@
             else if (food === '糖葫芦') showPetDialog("唔，糖葫芦！算你有良心，还记着小爷爱吃这个。");
             else showPetDialog("这是什么东西？不过既然是你喂的，小爷就勉为其难喝了吧。");
         };
-
         document.getElementById('btn-hug').onclick = function(e) {
             e.stopPropagation(); 
             petMenu.classList.remove('show'); 
             if(affection <= 0) { showPetDialog("滚开！别碰我！"); return; }
+            
+            // 如果弹窗已经显示了，就不要再弹了
+            if (document.getElementById('hug-modal').classList.contains('show')) return;
+            
             showPetDialog("风清雁，要抱抱吗？");
             
             safeSetTimeout(() => {
+                if(affection <= 0) return; // 1秒后如果好感度已经扣没了，就不弹了
                 if(Math.random() < 0.7) {
                     const modal = document.getElementById('hug-modal');
                     modal.classList.add('show');
@@ -1932,30 +1940,37 @@
             }, 1000);
         };
 
-                             window.handleHug = function(isHug) {
+        let isHugProcessing = false; // 👈 新增：防连点锁
+
+        window.handleHug = function(isHug) {
+            if (isHugProcessing) return; // 如果正在处理中，直接拦截后续的狂点！
+            isHugProcessing = true;
+            
             const modal = document.getElementById('hug-modal');
             modal.classList.remove('show');
+            modal.style.pointerEvents = 'none'; // 禁用弹窗点击，防止穿透
             
             if (isHug) {
                 const now = Date.now();
                 if (now - lastHugTime < 24*60*60*1000) showPetDialog("怎么又要抱？小爷是你想抱就能抱的吗？(今日已无好感加成)");
                 else { 
-                    lastHugTime = now; localStorage.setItem('jh_last_hug', lastHugTime); affection += 5; updateAffectionUI(); 
-                    
-                    // 👇 新增这句话 👇
+                    lastHugTime = now; localStorage.setItem('jh_last_hug', lastHugTime); 
+                    affection += 5; updateAffectionUI(); 
                     if (window.showAffectionFloat) window.showAffectionFloat(5); 
-                    
                     showPetDialog("哼，这还差不多。小爷给你抱一下。"); 
                 }
             } else { 
                 affection -= 10; updateAffectionUI(); 
-                
-                // 👇 新增这句话 👇
                 if (window.showAffectionFloat) window.showAffectionFloat(-10); 
-                
                 showPetDialog(affection <= 0 ? "你居然不抱我？好……很好！你会后悔的！" : "你居然不抱我？北地笨猪，你心真狠！"); 
                 if(window.AchieveSystem) window.AchieveSystem.addProgress('hug_no', 1);
             }
+            
+            // 0.5秒后解锁，防止手指连点
+            setTimeout(() => {
+                isHugProcessing = false;
+                modal.style.pointerEvents = 'auto';
+            }, 500);
         };
 
         document.getElementById('btn-story').onclick = function(e) {
