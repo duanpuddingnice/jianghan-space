@@ -3579,8 +3579,8 @@ const EMOJI_LIST = ['🐷', '🐰', '🐼', '🦊', '🐱', '🐶', '🐸', '�
     let chargeAnimId = null;
     
     const CHARGE_DURATION = 850;    
-    const MIN_DISTANCE = 35;        
-    const MAX_DISTANCE = 180;       
+    const MIN_DISTANCE = 50;        
+    const MAX_DISTANCE = 350;       
 
     function resize() {
         width = canvas.width = window.innerWidth;
@@ -3814,7 +3814,8 @@ const EMOJI_LIST = ['🐷', '🐰', '🐼', '🦊', '🐱', '🐶', '🐸', '�
         const dy = player.y - target.y;
         
         // 宽容判定
-        const isHit = (Math.abs(dx) / (R_X + 5)) + (Math.abs(dy) / (R_Y + 5)) <= 1.0;
+            // 把 +5 改大一点，给玩家更多容错率
+    const isHit = (Math.abs(dx) / (R_X + 15)) + (Math.abs(dy) / (R_Y + 10)) <= 1.0;
 
         if (isHit) {
             // 落地成功，高度归零
@@ -3828,7 +3829,7 @@ const EMOJI_LIST = ['🐷', '🐰', '🐼', '🦊', '🐱', '🐶', '🐸', '�
             player.scaleX = 1.4;
             player.scaleY = 0.6;
 
-            const nextDist = 85 + Math.random() * 75; // 👈 间距变成 85 到 160 之间，拉开距离
+            const nextDist = 170 + Math.random() * 70; // 👈 间距变成 85 到 160 之间，拉开距离
             const angle = -Math.PI / 4 + (Math.random() - 0.5) * 0.12;
             
             // 【修改】生成新方块时，增加 number 属性
