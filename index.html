@@ -892,11 +892,22 @@
         document.getElementById('next-btn').onclick = () => { if(currentPage < letterPages.length - 1) { currentPage++; renderLetterPage(); } };
         
         document.getElementById('end-btn').onclick = function() {
-            currentGamePhase = 'letter_end_love';
-            document.getElementById('letter-layer').classList.remove('show'); safeSetTimeout(() => document.getElementById('letter-layer').style.display = 'none', 1000);
-            pauseAllBGM(); isDarkMode = false; document.getElementById('main-bg-mask').style.backgroundColor = 'rgba(224, 247, 250, 0.85)'; initParticles();
-            let count = 0; const loveInterval = safeSetInterval(() => { createPopup(loveMessages[Math.floor(Math.random() * loveMessages.length)]); count++; if (count >= 20) { clearInterval(loveInterval); safeSetTimeout(startCursedPopups, 1500); } }, 150);
-        };
+    currentGamePhase = 'cursed';
+    document.getElementById('letter-layer').classList.remove('show'); 
+    safeSetTimeout(() => document.getElementById('letter-layer').style.display = 'none', 1000);
+    
+    // ❌ 删掉 pauseAllBGM(); 让 bgm3 继续播放！
+    
+    isDarkMode = false; 
+    document.getElementById('main-bg-mask').style.backgroundColor = 'rgba(224, 247, 250, 0.85)'; 
+    initParticles();
+    let count = 0; 
+    const loveInterval = safeSetInterval(() => { 
+        createPopup(loveMessages[Math.floor(Math.random() * loveMessages.length)]); 
+        count++; 
+        if (count >= 20) { clearInterval(loveInterval); safeSetTimeout(startCursedPopups, 1500); } 
+    }, 150);
+};
 
         function startCursedPopups() {
             currentGamePhase = 'cursed';
@@ -941,13 +952,20 @@
         }
 
         window.answerJiang = function(type) {
-            const endingText = document.getElementById('ending-text');
-            endingText.textContent = type === 'yes' ? "看来你有把我说的话记在心上。" : "不是送了你勿忘我吗？怎么还是把我忘了？\n你这个北地笨猪！这次可要记好了。";
-            safeSetTimeout(() => {
-                endingText.textContent = "姜姜姜姜，这是给你的礼物。\n这里面有小爷的一丝神魂。";
-                safeSetTimeout(() => { localStorage.setItem('jh_first_recall', 'true'); firstRecall = true; activatePetWidget(); resumeMainLoopFromEnd(); }, 3000);
-            }, 2500);
-        };
+    const endingText = document.getElementById('ending-text');
+    // 👇 换成这段代码 👇
+    if (type === 'yes') {
+        endingText.innerHTML = "看来你有把我说的话记在心上。";
+    } else {
+        endingText.innerHTML = "不是送了你勿忘我吗？<br>怎么还是忘了？<br><br>你这个北地笨猪！<br>这次可要记好了。";
+    }
+    // 👆 换成这段代码 👆
+    
+    safeSetTimeout(() => {
+        endingText.innerHTML = "姜姜姜姜，这是给你的礼物。<br>这里面有小爷的一丝神魂。";
+        safeSetTimeout(() => { localStorage.setItem('jh_first_recall', 'true'); firstRecall = true; activatePetWidget(); resumeMainLoopFromEnd(); }, 3000);
+    }, 2500);
+};
 
         function resumeMainLoopFromEnd() {
             currentGamePhase = 'pet';
@@ -2557,7 +2575,7 @@ document.getElementById('btn-history-mode').onclick = function(e) {
         setInterval(async () => {
             try {
                 // 获取当前网页头部的最后修改时间
-                const response = await fetch(window.location.href, { method: 'HEAD', cache: 'no-store' });
+                const response = await fetch(window.location.href, { method: 'HEAD', cache: 'no-cache' });
                 const lastModified = response.headers.get('Last-Modified');
                 const storedVersion = localStorage.getItem('app_version');
 
