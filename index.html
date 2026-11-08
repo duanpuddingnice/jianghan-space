@@ -9,6 +9,7 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <link rel="apple-touch-icon" href="icon-192.png">
     <style>
+
                 * { 
             box-sizing: border-box; 
             /* 【新增】暴力封杀所有元素的选中和长按菜单 */
@@ -48,12 +49,16 @@
             pointer-events: none !important;
         }
         /* ================== 原流程弹窗 ================== */
-                #main-bg-mask {
+                        #main-bg-mask {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background-color: rgba(224, 247, 250, 0.85); /* 默认的浅蓝蒙层，保证文字清晰 */
-            z-index: 0; transition: background-color 1.5s; pointer-events: none;
+            z-index: 0; 
+            /* 【修改】使用平滑的渐变过渡，替代死板的一闪而过的纯色 */
+            transition: background 2s ease; 
+            pointer-events: none;
+            /* 默认是白天的浅蓝白渐变 */
+            background: linear-gradient(to bottom, rgba(224, 247, 250, 0.85), rgba(255, 255, 255, 0.6));
         }
-                .popup-window {
+              .popup-window {
             position: absolute; background-color: #FFB7C5; border: 1px solid rgba(255,255,255,0.8); border-radius: 8px;
             box-shadow: 0 6px 20px rgba(0,0,0,0.25); display: flex; flex-direction: column; z-index: 10;
             opacity: 0; height: auto; min-height: 50px; transform: scale(0.6) translateY(20px);
@@ -148,9 +153,31 @@
         #jianghan-avatar.bounce { animation: bounceAnim 0.5s; }
         @keyframes bounceAnim { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.15) translateY(-10px); } }
 
-        #pet-menu { display: flex; gap: 6px; margin-top: 10px; opacity: 0; pointer-events: none; transition: opacity 0.3s; pointer-events: auto; }
+        #pet-menu { 
+            display: grid; 
+            grid-template-columns: repeat(3, 1fr); /* 一行排 3 个按钮 */
+            gap: 8px; 
+            margin-top: 10px; 
+            opacity: 0; 
+            pointer-events: none; 
+            transition: opacity 0.3s; 
+            width: max-content; 
+            max-width: 250px; 
+        }
         #pet-menu.show { opacity: 1; pointer-events: auto; }
-        .menu-btn { background: rgba(255, 255, 255, 0.95); border: 2px solid #FFB7C5; border-radius: 20px; padding: 6px 10px; font-size: clamp(11px, 3vw, 13px); font-weight: bold; color: #FF69B4; cursor: pointer; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+                .menu-btn { 
+            background: rgba(255, 255, 255, 0.95); 
+            border: 2px solid #FFB7C5; 
+            border-radius: 20px; 
+            padding: 8px 0; /* 上下内边距 */
+            width: 100%;    /* 填满网格的格子 */
+            text-align: center;
+            font-size: clamp(12px, 3.2vw, 14px); 
+            font-weight: bold; 
+            color: #FF69B4; 
+            cursor: pointer; 
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1); 
+        }
         .menu-btn:active { background: #FFB7C5; color: white; }
 
         /* ================== 抱抱迷你弹窗 ================== */
@@ -355,17 +382,435 @@
 .save-slot-title { font-weight: bold; color: #FF69B4; margin-bottom: 4px; font-size: clamp(11px, 3vw, 13px); }
 .save-slot.empty .save-slot-title { color: #999; }
 .save-slot-info { word-break: break-all; }
-    </style>
+        /* ================== 抽卡与装扮系统 ================== */
+        #gacha-layer {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.85); z-index: 100000005;
+            display: none; justify-content: center; align-items: center; flex-direction: column;
+        }
+        .gacha-panel {
+            background: #fff; width: min(90vw, 400px); border-radius: 15px; padding: 20px; text-align: center;
+            box-shadow: 0 10px 30px rgba(255, 105, 180, 0.4);
+            border: 2px solid #FFB7C5;
+            position: relative;
+        }
+        .gacha-result {
+            height: 120px; display: flex; flex-direction: column; justify-content: center; align-items: center;
+            font-size: 40px; margin-bottom: 15px; transition: all 0.3s;
+        }
+        .gacha-result-text {
+            font-size: 18px; font-weight: bold; color: #FF69B4; margin-top: 10px;
+        }
+        .gacha-info-bar {
+            display: flex; justify-content: space-between; font-size: 14px; font-weight: bold; color: #666; margin-bottom: 20px;
+        }
+        .gacha-btn-group {
+            display: flex; gap: 10px; flex-direction: column;
+        }
+        .gacha-btn {
+            background: #FFB7C5; color: #fff; border: none; padding: 12px; border-radius: 20px;
+            font-size: 16px; font-weight: bold; cursor: pointer; transition: transform 0.1s;
+        }
+        .gacha-btn:active { transform: scale(0.95); }
+        .gacha-btn.free { background: #FF69B4; box-shadow: 0 0 10px rgba(255,105,180,0.5); }
+        .gacha-btn.synth { background: #9C27B0; }
+        .gacha-close { position: absolute; top: 10px; right: 15px; font-size: 24px; color: #999; cursor: pointer; font-weight: bold; }
+        
+        /* 头像专属挂件定位 */
+        #avatar-accessory {
+            position: absolute; top: -15px; right: -10px; font-size: 40px;
+            pointer-events: none; z-index: 100001; display: none;
+            animation: float 2s infinite alternate;
+        }
+                /* ================== 背包系统 ================== */
+        #inventory-layer {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.85); z-index: 100000006;
+            display: none; justify-content: center; align-items: center; flex-direction: column;
+        }
+        .inventory-panel {
+            background: #fff; width: min(90vw, 450px); max-height: 80vh; border-radius: 15px; padding: 20px; text-align: center;
+            border: 2px solid #FFB7C5; display: flex; flex-direction: column;
+        }
+        .inventory-title { color: #FF69B4; font-size: 20px; font-weight: bold; margin-bottom: 15px; border-bottom: 2px solid #FFB7C5; padding-bottom: 10px; }
+        .inventory-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; overflow-y: auto; max-height: 50vh; }
+        .inv-item {
+            background: #FFF0F5; border: 1px solid #FFB7C5; border-radius: 10px; padding: 10px;
+            display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer;
+        }
+        .inv-item:hover { background: #FFE4EC; }
+        .inv-item.empty { background: #f9f9f9; border-style: dashed; border-color: #ddd; cursor: default; }
+        .inv-icon { font-size: 30px; margin-bottom: 5px; }
+        .inv-name { font-size: 12px; color: #666; font-weight: bold; }
+                /* ================== 成就系统 ================== */
+        #achieve-layer {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.85); z-index: 100000020;
+            display: none; justify-content: center; align-items: center; flex-direction: column;
+        }
+        .achieve-panel {
+            background: #fff; width: min(90vw, 500px); max-height: 80vh; border-radius: 15px; padding: 20px;
+            display: flex; flex-direction: column; border: 2px solid #FFB7C5; box-shadow: 0 10px 30px rgba(255,105,180,0.3);
+        }
+        .achieve-header {
+            display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #FFB7C5; padding-bottom: 10px; margin-bottom: 15px;
+        }
+        .achieve-title { color: #FF69B4; font-size: 20px; font-weight: bold; margin: 0; }
+        .achieve-close { font-size: 24px; color: #999; cursor: pointer; font-weight: bold; }
+        .achieve-grid {
+            display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; overflow-y: auto; padding-right: 5px;
+        }
+        .achieve-item {
+            background: #f5f5f5; border: 1px solid #ddd; border-radius: 10px; padding: 12px;
+            display: flex; align-items: center; gap: 10px; opacity: 0.6; transition: all 0.3s;
+        }
+        .achieve-item.unlocked {
+            background: #FFF0F5; border-color: #FFB7C5; opacity: 1; box-shadow: 0 2px 10px rgba(255,105,180,0.2);
+        }
+        .achieve-icon { font-size: 30px; filter: grayscale(100%); transition: all 0.3s; }
+        .achieve-item.unlocked .achieve-icon { filter: grayscale(0%); transform: scale(1.1); }
+        .achieve-info { flex: 1; }
+        .achieve-name { font-weight: bold; font-size: 14px; color: #666; margin-bottom: 4px; }
+        .achieve-item.unlocked .achieve-name { color: #FF69B4; }
+        .achieve-desc { font-size: 11px; color: #999; margin-bottom: 6px; }
+        .achieve-progress-bar { height: 6px; background: #eee; border-radius: 3px; overflow: hidden; }
+        .achieve-progress-fill { height: 100%; background: #ccc; width: 0%; transition: width 0.3s; }
+        .achieve-item.unlocked .achieve-progress-fill { background: #FF69B4; }
+
+        /* 成就解锁 Toast 弹窗 */
+        .achieve-toast {
+            position: fixed; top: 20px; left: 50%; transform: translateX(-50%) translateY(-100px);
+            background: linear-gradient(135deg, #FFD1DC, #FF69B4); color: white; padding: 15px 30px;
+            border-radius: 50px; display: flex; align-items: center; gap: 15px;
+            box-shadow: 0 5px 20px rgba(255,105,180,0.5); z-index: 999999999; opacity: 0;
+            transition: transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.5s;
+        }
+        .achieve-toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+        .achieve-toast-icon { font-size: 30px; animation: spinPop 1s ease; }
+        .achieve-toast-text { font-weight: bold; font-size: 16px; text-shadow: 0 1px 2px rgba(0,0,0,0.2); }
+        @keyframes spinPop { 0% { transform: scale(0) rotate(-180deg); } 100% { transform: scale(1) rotate(0); } }
+           /* ================== 游戏选择大厅 ================== */
+        #game-hall-layer {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.85); z-index: 100000000;
+            display: none; justify-content: center; align-items: center; gap: 20px; flex-wrap: wrap; padding: 20px;
+        }
+        .game-card {
+            background: #fff; width: 140px; height: 180px; border-radius: 20px;
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            border: 3px solid #FFB7C5; cursor: pointer; transition: transform 0.2s, box-shadow 0.2s;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+        }
+        .game-card:active { transform: scale(0.95); }
+        .game-card:hover { box-shadow: 0 10px 25px rgba(255,105,180,0.5); }
+        .game-icon { font-size: 50px; margin-bottom: 15px; }
+        .game-name { font-size: 18px; font-weight: bold; color: #FF69B4; }
+
+        /* ================== 2048 游戏层 ================== */
+        #game-2048-layer {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: #faf8ef; z-index: 100000000;
+            display: none; flex-direction: column; justify-content: center; align-items: center;
+            touch-action: none; /* 防止滑动时页面滚动 */
+        }
+        .g2048-header { width: 100%; max-width: 400px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding: 0 10px; }
+        .g2048-title { font-size: 40px; font-weight: 900; color: #776e65; margin: 0; }
+        .g2048-score-box { background: #bbada0; padding: 10px 20px; border-radius: 8px; text-align: center; color: #fff; }
+        .g2048-score-label { font-size: 12px; font-weight: bold; }
+        .g2048-score-val { font-size: 20px; font-weight: bold; }
+        
+        .g2048-grid {
+            background: #bbada0; border-radius: 10px; padding: 10px;
+            display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px;
+            width: 90vw; max-width: 380px; height: 90vw; max-height: 380px;
+            position: relative;
+        }
+        .g2048-cell { background: rgba(238, 228, 218, 0.35); border-radius: 6px; }
+                .g2048-tile {
+            position: absolute; border-radius: 6px; display: flex; justify-content: center; align-items: center;
+            font-weight: bold; font-size: 30px; 
+            /* 👇 这里是丝滑移动的核心，0.1秒滑动过去 */
+            transition: top 0.1s ease-in-out, left 0.1s ease-in-out; 
+        }
+        @keyframes tilePop { 0% { transform: scale(0); } 100% { transform: scale(1); } }
+        
+        /* 数字配色 */
+        .tile-2 { background: #eee4da; color: #776e65; }
+        .tile-4 { background: #ede0c8; color: #776e65; }
+        .tile-8 { background: #f2b179; color: #f9f6f2; }
+        .tile-16 { background: #f59563; color: #f9f6f2; }
+        .tile-32 { background: #f67c5f; color: #f9f6f2; }
+        .tile-64 { background: #f65e3b; color: #f9f6f2; }
+        .tile-128 { background: #edcf72; color: #f9f6f2; font-size: 26px; }
+        .tile-256 { background: #edcc61; color: #f9f6f2; font-size: 26px; }
+        .tile-512 { background: #edc850; color: #f9f6f2; font-size: 26px; }
+        .tile-1024 { background: #edc53f; color: #f9f6f2; font-size: 22px; }
+        .tile-2048 { background: #edc22e; color: #f9f6f2; font-size: 22px; box-shadow: 0 0 20px #edc22e; }
+        
+        #exit-2048-btn { position: absolute; top: 20px; right: 20px; background: transparent; border: 2px solid #bbada0; color: #776e65; padding: 8px 15px; border-radius: 20px; font-weight: bold; cursor: pointer; }
+           /* ================== 抽卡动画与特效系统 ================== */
+        #gacha-anim-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.95); z-index: 200000000;
+            display: none; justify-content: center; align-items: center; flex-direction: column;
+            perspective: 1000px;
+        }
+        .gacha-flash {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: radial-gradient(circle, rgba(255,255,255,1) 0%, rgba(255,255,255,0) 70%);
+            opacity: 0; pointer-events: none; z-index: 1;
+        }
+        .gacha-flash.active { animation: flashAnim 1s ease-out forwards; }
+        @keyframes flashAnim { 0% { opacity: 0; transform: scale(0.5); } 50% { opacity: 1; transform: scale(1.5); } 100% { opacity: 0; transform: scale(2); } }
+
+        .gacha-card {
+            width: 260px; height: 360px; position: relative; transform-style: preserve-3d;
+            transform: rotateY(180deg); opacity: 0; transition: all 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            z-index: 2;
+        }
+        .gacha-card.flipped { transform: rotateY(0deg); opacity: 1; }
+        .gacha-card-front {
+            position: absolute; width: 100%; height: 100%; backface-visibility: hidden;
+            background: #fff; border-radius: 20px; display: flex; flex-direction: column;
+            justify-content: center; align-items: center; padding: 20px; text-align: center;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5); border: 4px solid #eee;
+        }
+        .gacha-rarity {
+            position: absolute; top: 15px; left: 15px; font-weight: 900; font-size: 24px; font-style: italic;
+        }
+        .gacha-item-icon { font-size: 80px; margin: 30px 0; animation: float 2s infinite alternate; }
+        .gacha-item-name { font-size: 22px; font-weight: bold; color: #333; margin-bottom: 10px; }
+        .gacha-item-desc { font-size: 14px; color: #666; line-height: 1.5; }
+                .gacha-ok-btn {
+            margin-top: 40px; /* 用 margin 让它跟在卡片下面，而不是绝对定位 */
+            background: white; color: #FF69B4; border: none; padding: 12px 40px; border-radius: 30px;
+            font-size: 18px; font-weight: bold; cursor: pointer; display: none;
+            box-shadow: 0 5px 15px rgba(255,105,180,0.4);
+            z-index: 10;
+        }
+
+        /* 品级边框与颜色 */
+        .rarity-N { color: #999; border-color: #ddd; }
+        .rarity-R { color: #00BFFF; border-color: #00BFFF; box-shadow: 0 0 30px rgba(0,191,255,0.3); }
+        .rarity-SR { color: #9C27B0; border-color: #9C27B0; box-shadow: 0 0 40px rgba(156,39,176,0.5); }
+        .rarity-SSR { color: #FFD700; border-color: #FFD700; box-shadow: 0 0 60px rgba(255,215,0,0.8); background: linear-gradient(135deg, #fffcf0, #fff8d6); }
+
+        /* ================== 纸娃娃装扮特效 ================== */
+        /* 彩虹流光边框 */
+        .frame-rainbow {
+            border: 4px solid transparent !important;
+            background-clip: padding-box, border-box !important;
+            background-origin: padding-box, border-box !important;
+            background-image: linear-gradient(to right, #fff, #fff), linear-gradient(90deg, #ff0000, #ff7f00, #ffff00, #00ff00, #0000ff, #4b0082, #8f00ff) !important;
+            animation: rainbowSpin 3s linear infinite;
+        }
+        @keyframes rainbowSpin { 0% { filter: hue-rotate(0deg); } 100% { filter: hue-rotate(360deg); } }
+        
+        /* 名字发光 */
+        .name-glow {
+            text-shadow: 0 0 10px #FF69B4, 0 0 20px #FF69B4, 0 0 30px #FF69B4 !important;
+            animation: pulseGlow 1.5s infinite alternate;
+        }
+        @keyframes pulseGlow { 0% { filter: brightness(1); } 100% { filter: brightness(1.5); } }
+          /* ================== 红点提示系统 ================== */
+        .red-dot {
+            position: absolute;
+            top: -2px;
+            right: -2px;
+            width: 12px;
+            height: 12px;
+            background-color: #ff3b30;
+            border-radius: 50%;
+            border: 2px solid #fff;
+            display: none;
+            z-index: 10;
+            animation: dotPulse 1s infinite alternate;
+        }
+        @keyframes dotPulse {
+            0% { transform: scale(1); }
+            100% { transform: scale(1.3); }
+                    /* ================== 好感度飘字系统 ================== */
+        .aff-float {
+            position: fixed;
+            font-weight: 900;
+            font-size: 24px;
+            pointer-events: none;
+            z-index: 999999999;
+            animation: floatUp 1.2s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+            text-shadow: 0 2px 5px rgba(0,0,0,0.3);
+        }
+        @keyframes floatUp {
+            0% { opacity: 0; transform: translateY(10px) scale(0.8); }
+            20% { opacity: 1; transform: translateY(-10px) scale(1.1); }
+            100% { opacity: 0; transform: translateY(-60px) scale(1); }
+        }
+
+        /* ================== 回忆长廊 (Gallery) ================== */
+        #gallery-layer {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.85); z-index: 100000030;
+            display: none; justify-content: center; align-items: center; flex-direction: column;
+        }
+        .gallery-panel {
+            background: #fff; width: min(90vw, 500px); max-height: 85vh; border-radius: 15px; padding: 20px;
+            display: flex; flex-direction: column; border: 2px solid #FFB7C5; box-shadow: 0 10px 30px rgba(255,105,180,0.3);
+        }
+        .gallery-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #FFB7C5; padding-bottom: 10px; margin-bottom: 10px; }
+        .gallery-title { color: #FF69B4; font-size: 20px; font-weight: bold; margin: 0; }
+        .gallery-close { font-size: 24px; color: #999; cursor: pointer; font-weight: bold; }
+        
+        .gallery-tabs { display: flex; gap: 10px; margin-bottom: 15px; }
+        .gallery-tab { flex: 1; padding: 10px; text-align: center; background: #f5f5f5; color: #666; border-radius: 10px; font-weight: bold; cursor: pointer; transition: all 0.2s; border: 1px solid #eee; }
+        .gallery-tab.active { background: #FFB7C5; color: white; border-color: #FF69B4; box-shadow: 0 2px 8px rgba(255,105,180,0.3); }
+        
+        .gallery-content { overflow-y: auto; flex: 1; display: flex; flex-direction: column; gap: 10px; padding-right: 5px; }
+        .gallery-item {
+            background: #FFF0F5; border: 1px solid #FFB7C5; border-radius: 10px; padding: 12px 15px;
+            font-size: 14px; color: #333; line-height: 1.5; cursor: pointer; transition: all 0.2s;
+            position: relative;
+        }
+        .gallery-item:hover { background: #FFE4EC; transform: translateX(5px); }
+        .gallery-item.locked { background: #f5f5f5; border-color: #ddd; color: #999; cursor: not-allowed; }
+        .gallery-item.locked:hover { transform: none; }
+        .gallery-item-title { font-weight: bold; color: #FF69B4; margin-bottom: 4px; font-size: 15px; }
+        .gallery-item.locked .gallery-item-title { color: #999; }
+        .gallery-item-preview { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 12px; color: #666; }
+
+        /* 详情弹窗 */
+        .gallery-detail-modal {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.6); z-index: 100000040; display: none;
+            justify-content: center; align-items: center; padding: 20px;
+        }
+        .gallery-detail-box {
+            background: #fff; border-radius: 15px; width: min(85vw, 400px); max-height: 70vh;
+            padding: 20px; overflow-y: auto; box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            display: flex; flex-direction: column; gap: 15px;
+        }
+        .gallery-detail-text { font-size: 16px; color: #333; line-height: 1.8; white-space: pre-wrap; text-align: justify; }
+        }
+                        /* ================== 抓娃娃机 (2.5D版) ================== */
+        #game-claw-layer {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: #1a1a1a; z-index: 100000000;
+            display: none; flex-direction: column; justify-content: center; align-items: center;
+            overflow: hidden;
+        }
+        .claw-machine-box {
+            width: min(90vw, 400px); height: min(70vh, 500px);
+            background: #e0f7fa; border: 4px solid #FFB7C5; border-radius: 15px;
+            position: relative; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            display: flex; flex-direction: column;
+            /* 视角倾斜，产生 2.5D 感觉 */
+            perspective: 800px;
+        }
+        .claw-track {
+            width: 100%; height: 10px; background: #bbb; position: absolute; top: 10px; left: 0; z-index: 10;
+        }
+        
+        /* 爪子实体 */
+        .claw-entity {
+            position: absolute; top: 20px; left: 50%;
+            transform: translateX(-50%);
+            display: flex; flex-direction: column; align-items: center;
+            z-index: 20;
+            /* 添加阴影增加深度感 */
+            filter: drop-shadow(0 5px 5px rgba(0,0,0,0.3));
+        }
+        .claw-rope {
+            width: 2px; height: 0px; background: #333; 
+            transition: height 0.6s cubic-bezier(0.6, 0.04, 0.98, 0.33); 
+        }
+        .claw-rope.up {
+            transition: height 0.6s cubic-bezier(0.02, 0.01, 0.4, 1.2); 
+        }
+        .claw-head {
+            width: 30px; height: 20px; background: #999; border-radius: 5px;
+            position: relative;
+        }
+        .claw-arm {
+            position: absolute; bottom: -15px; width: 4px; height: 20px; background: #666;
+            transition: transform 0.2s ease-out;
+        }
+        .claw-arm.left { left: 6px; transform-origin: top; transform: rotate(30deg); }
+        .claw-arm.right { right: 6px; transform-origin: top; transform: rotate(-30deg); }
+        .claw-entity.grabbing .claw-arm.left { transform: rotate(-15deg); }
+        .claw-entity.grabbing .claw-arm.right { transform: rotate(15deg); }
+
+        /* 娃娃池 */
+        .dolls-pool {
+            position: absolute; bottom: 0; left: 0; width: 100%; height: 100%;
+            z-index: 5; pointer-events: none;
+        }
+        .doll {
+            position: absolute; font-size: 40px; 
+            /* 真实物理掉落效果 */
+            transition: bottom 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), transform 0.2s;
+            text-shadow: 0 10px 10px rgba(0,0,0,0.4);
+            display: flex; justify-content: center; align-items: center;
+        }
+        
+        .claw-hole {
+            position: absolute; bottom: 0; right: 20px; width: 70px; height: 50px;
+            background: #333; border-radius: 50% 50% 0 0; z-index: 8;
+            display: flex; justify-content: center; align-items: center;
+            color: #fff; font-size: 12px; font-weight: bold;
+            box-shadow: inset 0 10px 20px rgba(0,0,0,0.8); /* 洞口深渊感 */
+        }
+
+        .claw-controls {
+            margin-top: 20px; display: flex; gap: 20px;
+        }
+        .claw-btn {
+            background: #FF69B4; color: white; border: none; padding: 15px 30px;
+            border-radius: 30px; font-size: 18px; font-weight: bold; cursor: pointer;
+            box-shadow: 0 5px 15px rgba(255,105,180,0.4); transition: transform 0.1s;
+        }
+        .claw-btn:active { transform: scale(0.9); }
+        .claw-btn:disabled { background: #999; box-shadow: none; cursor: not-allowed; }
+        
+        #exit-claw-btn {
+            /* ================== 抓娃娃手感与提示优化 ================== */
+        .claw-entity {
+            transition: left 0.15s ease-out, transform 0.15s ease-out !important;
+        }
+        .coin-toast {
+            position: fixed; top: 100px; left: 50%; transform: translateX(-50%);
+            background: rgba(0,0,0,0.85); color: #FFD700; padding: 10px 22px;
+            border-radius: 20px; font-weight: bold; font-size: 16px;
+            z-index: 999999999; pointer-events: none; opacity: 1;
+            transition: opacity 0.4s, top 0.4s; box-shadow: 0 4px 15px rgba(255,215,0,0.3);
+        }
+        .coin-toast.up { top: 60px; opacity: 0; }
+        .coin-toast.err { color: #FF6B6B; box-shadow: 0 4px 15px rgba(255,107,107,0.3); }
+/* 全局金币浮窗提示 */
+.coin-toast {
+    position: fixed; top: 100px; left: 50%; transform: translateX(-50%);
+    background: rgba(0,0,0,0.85); color: #FFD700; padding: 10px 22px;
+    border-radius: 20px; font-weight: bold; font-size: 16px;
+    z-index: 999999999; pointer-events: none; opacity: 1;
+    transition: opacity 0.4s, top 0.4s; box-shadow: 0 4px 15px rgba(255,215,0,0.3);
+}
+.coin-toast.up { top: 60px; opacity: 0; }
+.coin-toast.err { color: #FF6B6B; box-shadow: 0 4px 15px rgba(255,107,107,0.3); }
+            position: absolute; top: 20px; right: 20px; background: transparent;
+            border: 2px solid #888; color: #fff; padding: 8px 15px; border-radius: 20px; font-weight: bold; cursor: pointer;
+        }
+  </style>
+    <!-- 加在 <head> 里面，<style> 标签的上方 -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <script>
     window.addEventListener('load', function() {
         const loader = document.getElementById('loading-screen');
-        loader.style.opacity = '0';
-        setTimeout(() => { loader.style.display = 'none'; }, 500);
+        if (loader) {
+            loader.style.opacity = '0';
+            setTimeout(() => { loader.style.display = 'none'; }, 500);
+        }
     });
 </script>
 <body>
-    <div id="loading-screen" style="position:fixed; top:0; left:0; width:100%; height:100%; background:#E0F7FA; z-index:99999999; display:flex; justify-content:center; align-items:center; color:#FF69B4; font-weight:bold; font-size:20px; transition:opacity 0.5s;">
+    <div id="loading-screen" style="display:none; opacity:0; position:fixed; top:0; left:0; width:100%; height:100%; background:#E0F7FA; z-index:99999999; justify-content:center; align-items:center; color:#FF69B4; font-weight:bold; font-size:20px; transition:opacity 0.5s;">
     正在加载小爷的空间...
 </div>
 
@@ -413,11 +858,16 @@
         </div>
         <div id="pet-dialog"></div>
         <div id="jianghan-avatar"></div>
+        <div id="avatar-accessory">🎩</div>
         <div id="pet-menu">
+            <button class="menu-btn" id="btn-open-inventory">背包</button>
+            <button class="menu-btn" id="btn-open-gacha" style="position: relative;">抽卡<span id="gacha-red-dot" class="red-dot"></span></button>
             <button class="menu-btn" id="btn-feed">喂食</button>
             <button class="menu-btn" id="btn-hug">抱抱</button>
             <button class="menu-btn" id="btn-story">情话</button>
             <button class="menu-btn" id="btn-date">约会</button>
+            <button class="menu-btn" id="btn-play-jump">游戏厅</button>
+            <button class="menu-btn" id="btn-leaderboard">排行榜</button>
         </div>
     </div>
 
@@ -453,6 +903,23 @@
 
 <!-- 新增：存档菜单按钮 -->
 <div id="save-menu-btn">☰</div>
+<!-- 成就菜单按钮 -->
+<div id="achieve-menu-btn" style="position: absolute; top: 120px; right: 20px; width: 42px; height: 42px; background: rgba(255, 255, 255, 0.92); border: 2px solid #FFB7C5; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 20px; cursor: pointer; z-index: 100000000; box-shadow: 0 2px 12px rgba(0,0,0,0.2); transition: transform 0.15s;">🏆<span id="achieve-red-dot" class="red-dot"></span></div>
+<!-- 回忆长廊按钮 -->
+<div id="gallery-menu-btn" style="position: absolute; top: 170px; right: 20px; width: 42px; height: 42px; background: rgba(255, 255, 255, 0.92); border: 2px solid #FFB7C5; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 20px; cursor: pointer; z-index: 100000000; box-shadow: 0 2px 12px rgba(0,0,0,0.2); transition: transform 0.15s;">📖</div>
+<!-- 成就面板层 -->
+<div id="achieve-layer">
+    <div class="achieve-panel">
+        <div class="achieve-header">
+            <h2 class="achieve-title">🏆 成就徽章墙</h2>
+            <span id="achieve-close-btn" class="achieve-close">✖</span>
+        </div>
+        <div class="achieve-grid" id="achieve-grid"></div>
+    </div>
+</div>
+<!-- 天气测试按钮（点击循环切换：白天→黄昏→深夜） -->
+<div id="weather-test-btn" style="position: absolute; top: 70px; right: 20px; width: 42px; height: 42px; background: rgba(255, 255, 255, 0.92); border: 2px solid #FFB7C5; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 20px; cursor: pointer; z-index: 100000000; box-shadow: 0 2px 12px rgba(0,0,0,0.2); transition: transform 0.15s;">☁️</div>
+          
 
 <!-- 新增：存档面板 -->
 <div id="save-menu-panel">
@@ -479,8 +946,267 @@
             <div class="story-options" id="story-options-container"></div>
         </div>
     </div>
+  <!-- ================= 游戏中心层 ================= -->
+       <!-- ================= 抽卡界面 ================= -->
+    <div id="gacha-layer">
+        <!-- 抽卡全屏动画层 -->
+<div id="gacha-anim-overlay">
+    <div class="gacha-flash" id="gacha-flash-effect"></div>
+    <div class="gacha-card" id="gacha-card-ui">
+        <div class="gacha-card-front" id="gacha-card-front">
+            <div class="gacha-rarity" id="gacha-rarity-text">N</div>
+            <div class="gacha-item-icon" id="gacha-item-icon">🪙</div>
+            <div class="gacha-item-name" id="gacha-item-name">金币</div>
+            <div class="gacha-item-desc" id="gacha-item-desc">获得 50 金币</div>
+        </div>
+    </div>
+    <button class="gacha-ok-btn" id="gacha-ok-btn">收下</button>
+</div>
+            <!-- ================= 背包界面 ================= -->
+    <div id="inventory-layer">
+        <div class="inventory-panel">
+            <div class="gacha-close" onclick="window.InventorySystem.close()">✖</div>
+            <div class="inventory-title">🎒 我的收藏室</div>
+            <div style="font-size: 14px; margin-bottom: 15px; color: #666; font-weight: bold;">碎片: <span id="inv-frags" style="color:#9C27B0;">0</span></div>
+            <div class="inventory-grid" id="inventory-grid"></div>
+        </div>
+    </div>
+        <div class="gacha-panel">
+            <div class="gacha-close" onclick="window.GachaSystem.close()">✖</div>
+            <h2 style="color:#FF69B4; margin:0 0 15px 0; font-weight:900;">✨ 命运盲盒 ✨</h2>
+            
+            <div class="gacha-info-bar">
+                <div>金币: <span id="gacha-coins" style="color:#FFA000;">0</span></div>
+                <div>碎片: <span id="gacha-fragments" style="color:#9C27B0;">0</span></div>
+            </div>
 
+            <div class="gacha-result" id="gacha-anim-box">
+                <div id="gacha-icon">🎁</div>
+                <div class="gacha-result-text" id="gacha-text">点击下方按钮抽取</div>
+            </div>
+
+            <div class="gacha-btn-group">
+                <button class="gacha-btn free" id="btn-gacha-free">每日免费一抽</button>
+                <button class="gacha-btn" id="btn-gacha-pay">花费 100 金币抽一次</button>
+                <button class="gacha-btn synth" id="btn-gacha-synth">消耗 3 碎片合成稀有装扮</button>
+            </div>
+        </div>
+    </div>
+   <!-- 游戏选择大厅 -->
+<div id="game-hall-layer">
+    <div id="exit-hall-btn" style="position: absolute; top: 30px; right: 30px; background: rgba(0,0,0,0.5); border: 2px solid #fff; color: #fff; padding: 8px 20px; border-radius: 20px; font-weight: bold; cursor: pointer; z-index: 100000001; font-size: 16px;">退出大厅</div>
+    <div class="game-card" id="hall-select-jump">
+        <div class="game-icon">🕹️</div>
+        <div class="game-name">跳一跳</div>
+    </div>
+    <div class="game-card" id="hall-select-2048">
+        <div class="game-icon">🧩</div>
+        <div class="game-name">2048</div>
+    </div>
+    <div class="game-card" id="hall-select-claw">
+        <div class="game-icon">🕹️</div>
+        <div class="game-name">抓娃娃</div>
+    </div>
+</div>
+<!-- ================= 2048 游戏层 ================= -->
+<div id="game-2048-layer">
+    <button id="exit-2048-btn">退出</button>
+    <div class="g2048-header">
+        <h1 class="g2048-title">2048</h1>
+        <div class="g2048-score-box">
+            <div class="g2048-score-label">分数</div>
+            <div class="g2048-score-val" id="g2048-score">0</div>
+        </div>
+    </div>
+    <!-- 背景网格 -->
+    <div class="g2048-grid" id="g2048-grid">
+        <!-- 16个背景格子 -->
+        <div class="g2048-cell"></div><div class="g2048-cell"></div><div class="g2048-cell"></div><div class="g2048-cell"></div>
+        <div class="g2048-cell"></div><div class="g2048-cell"></div><div class="g2048-cell"></div><div class="g2048-cell"></div>
+        <div class="g2048-cell"></div><div class="g2048-cell"></div><div class="g2048-cell"></div><div class="g2048-cell"></div>
+        <div class="g2048-cell"></div><div class="g2048-cell"></div><div class="g2048-cell"></div><div class="g2048-cell"></div>
+    </div>
+</div>
+
+<!-- ================= 抓娃娃游戏层（独立分离出来了！） ================= -->
+<div id="game-claw-layer">
+    <button id="exit-claw-btn">退出</button>
+    <h2 style="color: #FFB7C5; margin-bottom: 20px;">🎪 命运娃娃机 <span style="font-size:16px;">(每次20金币)</span></h2>
+    <div class="claw-machine-box" id="claw-machine-box">
+        <div class="claw-track"></div>
+        <div class="claw-entity" id="claw-entity">
+            <div class="claw-rope" id="claw-rope"></div>
+            <div class="claw-head">
+                <div class="claw-arm left"></div>
+                <div class="claw-arm right"></div>
+            </div>
+        </div>
+        <div class="claw-hole">出口</div>
+        <div class="dolls-pool" id="dolls-pool"></div>
+    </div>
+    
+    <div class="claw-controls">
+        <button class="claw-btn" id="btn-claw-left">⬅ 左移</button>
+        <button class="claw-btn" id="btn-claw-drop">下 爪 (20金币)</button>
+        <button class="claw-btn" id="btn-claw-right">右移 ➡</button>
+    </div>
+</div>
+<div id="game-center-layer" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: #1a1a1a; z-index: 99999999; display: none; flex-direction: column; justify-content: center; align-items: center; overflow: hidden;">
+    
+    <!-- 顶部状态栏 -->
+    <div style="position: absolute; top: 30px; left: 20px; color: #fff; font-size: 24px; font-weight: bold; font-family: sans-serif;">
+        分数: <span id="jump-score" style="color: #FFB7C5;">0</span>
+    </div>
+    <!-- 退出按钮 -->
+    <button id="exit-game-btn" style="position: absolute; top: 30px; right: 20px; background: transparent; border: 2px solid #888; color: #fff; padding: 8px 15px; border-radius: 20px; font-weight: bold;">退出</button>
+
+    <!-- 游戏画布 -->
+    <canvas id="jump-canvas" style="width: 100%; height: 100%;"></canvas>
+
+                <!-- 长按蓄力条 -->
+            <div id="power-bar-container" style="position: absolute; bottom: 40px; width: 80%; max-width: 400px; height: 14px; background: rgba(0,0,0,0.6); border-radius: 7px; display: none; border: 1px solid #555; overflow: hidden; z-index: 100000001;">
+                <div id="power-bar" style="width: 0%; height: 100%; background: #00BFFF; box-shadow: 0 0 10px #00BFFF; border-radius: 7px;"></div>
+            </div>
+
+    <!-- 结算弹窗 -->
+    <div id="game-over-screen" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); display: none; flex-direction: column; justify-content: center; align-items: center; z-index: 100000000;">
+        <h1 style="color: #fff; font-size: 40px; margin-bottom: 10px;">游戏结束</h1>
+        <p style="color: #ccc; font-size: 18px; margin-bottom: 30px;">本次得分: <span id="final-score" style="color: #FFB7C5; font-size: 24px;"></span></p>
+        <button id="restart-game-btn" class="special-btn" style="margin-bottom: 20px; width: 200px;">再来一局</button>
+        <button id="back-menu-btn" class="special-btn" style="background: #555; color: #fff; width: 200px;">返回主页</button>
+    </div>
+</div>
+<!-- ================= 排行榜弹窗层 ================= -->
+<div id="leaderboard-layer" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 100000010; display: none; justify-content: center; align-items: center; flex-direction: column;">
+    <div style="background: #fff; width: min(90vw, 400px); max-height: 80vh; border-radius: 15px; padding: 20px; display: flex; flex-direction: column; border: 2px solid #FFB7C5; box-shadow: 0 10px 30px rgba(255,105,180,0.3);">
+        
+        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #FFB7C5; padding-bottom: 10px; margin-bottom: 15px;">
+            <h2 style="color: #FF69B4; margin: 0; font-size: 20px;">🏆 跳一跳风云榜</h2>
+            <span id="leaderboard-close-btn" style="font-size: 24px; color: #999; cursor: pointer; font-weight: bold; line-height: 1;">✖</span>
+        </div>
+
+        <!-- 用户个人信息栏 -->
+        <div style="display: flex; align-items: center; gap: 15px; background: #FFF0F5; padding: 10px; border-radius: 10px; margin-bottom: 15px;">
+            <!-- 头像上传区 -->
+            <div id="player-avatar-box" style="width: 50px; height: 50px; border-radius: 50%; background: #FFB7C5; background-size: cover; background-position: center; cursor: pointer; border: 2px solid #FF69B4; position: relative; overflow: hidden; flex-shrink: 0;">
+                <span style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: white; font-size: 12px; pointer-events: none;">上传</span>
+            </div>
+            <input type="file" id="avatar-upload-input" accept="image/*" style="display: none;">
+            
+            <!-- 名字输入 -->
+            <div style="flex: 1;">
+                <input type="text" id="player-name-input" placeholder="输入你的大名" maxlength="10" style="width: 100%; padding: 8px; border: 1px solid #FFB7C5; border-radius: 5px; font-size: 14px; outline: none; color: #333; font-weight: bold;">
+            </div>
+        </div>
+
+        <!-- 排行榜列表容器 -->
+        <div id="leaderboard-list" style="flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; padding-right: 5px; min-height: 200px;">
+            <!-- 动态插入数据 -->
+            <div style="text-align: center; color: #999; margin-top: 20px;">加载中...</div>
+        </div>
+        
+        <!-- 提交成绩按钮 (仅在游戏结束时出现) -->
+        <button id="submit-score-btn" class="special-btn" style="margin-top: 15px; width: 100%; display: none;">上传本次成绩</button>
+    </div>
+</div>
+<!-- 回忆长廊全屏层 -->
+<div id="gallery-layer">
+    <div class="gallery-panel">
+        <div class="gallery-header">
+            <h2 class="gallery-title">📖 回忆长廊</h2>
+            <span id="gallery-close-btn" class="gallery-close">✖</span>
+        </div>
+        <div class="gallery-tabs">
+            <div class="gallery-tab active" id="tab-quotes" onclick="window.GallerySystem.switchTab('quotes')">未说出口的话</div>
+            <div class="gallery-tab" id="tab-stories" onclick="window.GallerySystem.switchTab('stories')">时光碎片</div>
+        </div>
+        <div class="gallery-content" id="gallery-content">
+            <!-- 动态渲染列表 -->
+        </div>
+    </div>
+    
+    <!-- 详情弹窗 -->
+    <div class="gallery-detail-modal" id="gallery-detail-modal">
+        <div class="gallery-detail-box">
+            <div class="gallery-detail-text" id="gallery-detail-text">内容</div>
+            <button class="special-btn" style="align-self: center;" onclick="document.getElementById('gallery-detail-modal').style.display='none'">关闭</button>
+        </div>
+    </div>
+</div>
     <script>
+                // 必须加在这里，防止旧代码找不到这个函数而崩溃
+        function initParticles() {} 
+                // ================= 纯代码音效引擎 =================
+        window.SoundSystem = (function() {
+            let ctx = null;
+            function init() {
+                if (!ctx) {
+                    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+                    if (AudioCtx) ctx = new AudioCtx();
+                }
+                if (ctx && ctx.state === 'suspended') ctx.resume();
+            }
+
+            // 1. 点击滴声
+            function playClick() {
+                init(); if (!ctx) return;
+                let osc = ctx.createOscillator();
+                let gain = ctx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(800, ctx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(300, ctx.currentTime + 0.05);
+                gain.gain.setValueAtTime(0.1, ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.05);
+                osc.connect(gain); gain.connect(ctx.destination);
+                osc.start(); osc.stop(ctx.currentTime + 0.05);
+            }
+
+            // 2. 暴金叮声
+            function playWin() {
+                init(); if (!ctx) return;
+                [523.25, 659.25, 783.99, 1046.50].forEach((freq, i) => {
+                    let osc = ctx.createOscillator();
+                    let gain = ctx.createGain();
+                    osc.type = 'triangle';
+                    osc.frequency.value = freq;
+                    let startTime = ctx.currentTime + i * 0.1;
+                    gain.gain.setValueAtTime(0, startTime);
+                    gain.gain.linearRampToValueAtTime(0.15, startTime + 0.05);
+                    gain.gain.exponentialRampToValueAtTime(0.01, startTime + 0.5);
+                    osc.connect(gain); gain.connect(ctx.destination);
+                    osc.start(startTime); osc.stop(startTime + 0.5);
+                });
+            }
+
+            // 3. 成就啵声
+            function playAch() {
+                init(); if (!ctx) return;
+                let osc = ctx.createOscillator();
+                let gain = ctx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(150, ctx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(600, ctx.currentTime + 0.1);
+                gain.gain.setValueAtTime(0.2, ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.3);
+                osc.connect(gain); gain.connect(ctx.destination);
+                osc.start(); osc.stop(ctx.currentTime + 0.3);
+            }
+
+            return { playClick, playWin, playAch };
+        })();
+
+        // ================= 全局点击音效监听 & 触觉反馈 =================
+        document.body.addEventListener('click', function(e) {
+            // 点击音效
+            if (e.target.closest('.menu-btn, .special-btn, .game-card, .story-opt-btn, .gacha-btn, .date-card-btn')) {
+                window.SoundSystem.playClick();
+            }
+        });
+
+        // 手机震动辅助函数
+        function vibrateDevice(ms = 50) {
+            if (navigator.vibrate) navigator.vibrate(ms);
+        }
                 // 【新增】全局禁止右键/长按菜单
                 // 【新增】切出页面时暂停所有音乐
                 // 【新增】切出页面时暂停所有音乐，切回时恢复当前阶段对应的 BGM
@@ -586,53 +1312,157 @@
         const evilQuotes = ["你再碰我一下试试？", "滚开，别碰我。", "你是不是也觉得我很恶心？", "你和他们都一样，都在看我的笑话！", "我恨你……我恨死你了！", "你为什么不去死！", "你别以为我不敢杀你。", "离我远点！"];
         const highLoveQuotes = ["北地笨猪，其实小爷我……挺喜欢你的。", "那天榕乡城的酒，很好喝。", "我这辈子，只对你一个人服软。", "你别怕，天塌下来有我顶着。", "如果你不是圣女，我也不是江寒，那该多好。"];
 
-        // ================= 2. 背景粒子与弹窗 =================
-        const canvas = document.getElementById('bg-canvas');
-        const ctx = canvas.getContext('2d');
-        let width, height, particles = [];
-        const lotusColors = ['#FFFFFF', '#FCE4EC', '#F8BBD0', '#E1BEE7', '#D1C4E9'];
-        const darkColors = ['#424242', '#212121', '#B71C1C', '#4A148C', '#311B92'];
+                // ================= 2. 全新的天气与背景粒子系统 =================
+        window.WeatherSystem = (function() {
+            const canvas = document.getElementById('bg-canvas');
+            const ctx = canvas.getContext('2d');
+            const mask = document.getElementById('main-bg-mask');
+            let width, height, particles = [];
+            let currentState = 'day'; // 'day' | 'dusk' | 'night'
+            let animId = null;
+            let isPaused = false;
 
-        function resize() { width = canvas.width = window.innerWidth; height = canvas.height = window.innerHeight; }
-        window.addEventListener('resize', resize); resize();
+            const gradients = {
+                'day': 'linear-gradient(to bottom, rgba(224, 247, 250, 0.85), rgba(255, 255, 255, 0.6))',
+                'dusk': 'linear-gradient(to bottom, rgba(255, 183, 197, 0.75), rgba(255, 140, 0, 0.65))',
+                'night': 'linear-gradient(to bottom, rgba(15, 15, 25, 0.95), rgba(25, 25, 45, 0.85))'
+            };
 
-                class LotusParticle {
-            constructor() { this.reset(true); }
-            reset(init = false) {
-                this.x = Math.random() * width; this.y = init ? Math.random() * height : -20;
-                this.size = Math.random() * 12 + 8; this.speedY = Math.random() * 1.0 + 0.3;
-                this.speedX = Math.random() * 0.4 - 0.2; this.angle = Math.random() * Math.PI * 2;
-                this.rotSpeed = (Math.random() - 0.5) * 0.03;
-                this.color = isDarkMode ? darkColors[Math.floor(Math.random() * darkColors.length)] : lotusColors[Math.floor(Math.random() * lotusColors.length)];
+            function resize() { width = canvas.width = window.innerWidth; height = canvas.height = window.innerHeight; }
+            window.addEventListener('resize', resize); resize();
+
+            class WeatherParticle {
+                constructor(type) { 
+                    this.type = type;
+                    this.reset(true); 
+                }
+                reset(init = false) {
+                    this.x = Math.random() * width; 
+                    this.y = init ? Math.random() * height : -20;
+                    this.size = Math.random() * 8 + 6; 
+                    this.angle = Math.random() * Math.PI * 2;
+                    
+                    if (this.type === 'snow') {
+                        this.speedY = Math.random() * 1.2 + 0.5;
+                        this.speedX = Math.random() * 0.6 - 0.3;
+                        this.rotSpeed = (Math.random() - 0.5) * 0.02;
+                        this.color = ['#FFFFFF', '#E0F7FA', '#E1BEE7'][Math.floor(Math.random() * 3)];
+                    } else if (this.type === 'leaf') {
+                        this.speedY = Math.random() * 1.5 + 0.8;
+                        this.speedX = Math.random() * 1.5 - 0.5;
+                        this.rotSpeed = (Math.random() - 0.5) * 0.1;
+                        this.color = ['#FF8C00', '#D2691E', '#FFD700', '#B22222'][Math.floor(Math.random() * 4)];
+                    } else { // sakura
+                        this.speedY = Math.random() * 1.0 + 0.4;
+                        this.speedX = Math.random() * 0.8 - 0.2;
+                        this.rotSpeed = (Math.random() - 0.5) * 0.05;
+                        this.color = ['#FFB7C5', '#FFC0CB', '#FFD1DC'][Math.floor(Math.random() * 3)];
+                    }
+                }
+                update() { 
+                    this.y += this.speedY; 
+                    // 增加一点正弦波浪和风向
+                    this.x += Math.sin(this.y / 50) * 0.8 + this.speedX; 
+                    this.angle += this.rotSpeed; 
+                    if (this.y > height + 20 || this.x < -50 || this.x > width + 50) this.reset(); 
+                }
+                draw() { 
+                    ctx.save(); 
+                    ctx.globalAlpha = 0.8; 
+                    ctx.translate(this.x, this.y); 
+                    ctx.rotate(this.angle); 
+                    ctx.fillStyle = this.color; 
+                    ctx.beginPath(); 
+                    
+                    if (this.type === 'snow') {
+                        // 画雪花（六角星/圆点）
+                        ctx.arc(0, 0, this.size / 2, 0, Math.PI * 2);
+                    } else if (this.type === 'leaf') {
+                        // 画落叶（椭圆）
+                        ctx.ellipse(0, 0, this.size, this.size * 0.5, 0, 0, Math.PI * 2);
+                    } else {
+                        // 画樱花花瓣
+                        ctx.moveTo(0, -this.size); 
+                        ctx.quadraticCurveTo(this.size * 0.8, -this.size * 0.2, 0, this.size); 
+                        ctx.quadraticCurveTo(-this.size * 0.8, -this.size * 0.2, 0, -this.size);
+                    }
+                    ctx.fill(); 
+                    ctx.restore(); 
+                }
             }
-            update() { 
-                this.y += this.speedY; 
-                this.x += Math.sin(this.y / 60) * 0.8 + this.speedX; 
-                this.angle += this.rotSpeed; 
-                if (this.y > height + 20) this.reset(); 
+
+            function initParticles(type) {
+                particles = []; 
+                for (let i = 0; i < 80; i++) particles.push(new WeatherParticle(type));
             }
-            draw() { 
-                ctx.save(); 
-                ctx.globalAlpha = 0.85; 
-                ctx.translate(this.x, this.y); 
-                ctx.rotate(this.angle); 
-                ctx.fillStyle = this.color; 
-                ctx.beginPath(); 
-                // 外围大花瓣
-                ctx.moveTo(0, -this.size); 
-                ctx.quadraticCurveTo(this.size * 1.2, -this.size * 0.2, 0, this.size); 
-                ctx.quadraticCurveTo(-this.size * 1.2, -this.size * 0.2, 0, -this.size);
-                // 内部小花瓣
-                ctx.moveTo(0, -this.size * 0.6); 
-                ctx.quadraticCurveTo(this.size * 0.6, this.size * 0.2, 0, this.size * 0.8); 
-                ctx.quadraticCurveTo(-this.size * 0.6, this.size * 0.2, 0, -this.size * 0.6);
-                ctx.fill(); 
-                ctx.restore(); 
+
+            function loop() {
+                if (isPaused) return;
+                ctx.clearRect(0, 0, width, height); 
+                particles.forEach(p => { p.update(); p.draw(); });
+                animId = requestAnimationFrame(loop);
             }
-        }
-        function initParticles() { particles = []; for (let i = 0; i < 120; i++) particles.push(new LotusParticle()); }
-        function animateParticles() { ctx.clearRect(0, 0, width, height); particles.forEach(p => { p.update(); p.draw(); }); requestAnimationFrame(animateParticles); }
-        initParticles(); animateParticles();
+
+            // 核心：设置天气
+            function setWeather(state) {
+                currentState = state;
+                // 1. 切换背景渐变（覆盖掉原来代码里的 backgroundColor）
+                mask.style.background = gradients[state];
+                
+                // 2. 初始化对应的粒子
+                let pType = 'sakura';
+                if (state === 'dusk') pType = 'leaf';
+                if (state === 'night') pType = 'snow';
+                initParticles(pType);
+                
+                // 3. 更新测试按钮的图标
+                const testBtn = document.getElementById('weather-test-btn');
+                if (testBtn) testBtn.innerText = state === 'day' ? '☀️' : (state === 'dusk' ? '🌅' : '🌙');
+            }
+
+            // 自动检查时间
+            function checkTime() {
+                const hour = new Date().getHours();
+                let newState = 'day';
+                if (hour >= 18 && hour < 22) newState = 'dusk';
+                else if (hour >= 22 || hour < 6) newState = 'night';
+                
+                if (newState !== currentState) {
+                    setWeather(newState);
+                }
+            }
+
+            // 暴露方法给外部
+            return {
+                init: function() {
+                    checkTime();
+                    if (!animId) loop();
+                    // 每分钟检查一次时间
+                    safeSetInterval(checkTime, 60000); 
+                    
+                    // 绑定测试按钮事件
+                    document.getElementById('weather-test-btn').onclick = () => {
+                        if (currentState === 'day') setWeather('dusk');
+                        else if (currentState === 'dusk') setWeather('night');
+                        else setWeather('day');
+                    };
+                },
+                pause: function() {
+                    isPaused = true;
+                    if (animId) cancelAnimationFrame(animId);
+                    animId = null;
+                },
+                resume: function() {
+                    if (isPaused) {
+                        isPaused = false;
+                        if (!animId) loop();
+                    }
+                }
+            };
+        })();
+
+        // 启动天气系统
+        window.WeatherSystem.init();
 
         const loveMessages = [
             "北地笨猪，你是不是怕了？", "如果有一天，我不是羽幽城祭司了，我们还能像现在这样吗？",
@@ -708,8 +1538,10 @@
 
         // ================= 3. 主流程控制 =================
         window.startFlow = function() {
+            // 【新增】恢复天气粒子
+            window.WeatherSystem.resume();
             currentGamePhase = 'idle';
-            pauseAllBGM(); clearPopups(); isDarkMode = false; document.getElementById('main-bg-mask').style.backgroundColor = 'rgba(224, 247, 250, 0.85)'; initParticles();
+            pauseAllBGM(); clearPopups(); isDarkMode = false; document.getElementById('main-bg-mask').style.backgroundColor = 'rgba(224, 247, 250, 0.85)'; 
             
             document.getElementById('date-panel').classList.remove('show');
             document.getElementById('date-panel').style.display = 'none'; 
@@ -797,7 +1629,7 @@
             clearPopups();
 
             pauseAllBGM(); document.getElementById('bgm2').play().catch(e => console.log(e));
-            isDarkMode = true; document.getElementById('main-bg-mask').style.backgroundColor = 'rgba(26, 26, 26, 0.88)'; initParticles();
+            isDarkMode = true; document.getElementById('main-bg-mask').style.backgroundColor = 'rgba(26, 26, 26, 0.88)'; 
             
             document.getElementById('pet-widget').style.display = 'none'; 
             document.getElementById('pet-menu').classList.remove('show'); 
@@ -940,7 +1772,7 @@
     
     isDarkMode = false; 
     document.getElementById('main-bg-mask').style.backgroundColor = 'rgba(224, 247, 250, 0.85)'; 
-    initParticles();
+    
     let count = 0; 
     const loveInterval = safeSetInterval(() => { 
         createPopup(loveMessages[Math.floor(Math.random() * loveMessages.length)]); 
@@ -951,13 +1783,13 @@
 
         function startCursedPopups() {
             currentGamePhase = 'cursed';
-            clearPopups(); isDarkMode = true; document.getElementById('main-bg-mask').style.backgroundColor = 'rgba(26, 26, 26, 0.88)'; initParticles(); 
+            clearPopups(); isDarkMode = true; document.getElementById('main-bg-mask').style.backgroundColor = 'rgba(26, 26, 26, 0.88)';  
             let count = 0; const cursedInterval = safeSetInterval(() => { createPopup(darkMessages[Math.floor(Math.random() * darkMessages.length)], true); count++; if (count >= 20) { clearInterval(cursedInterval); safeSetTimeout(startLoveHateWar, 1500); } }, 150);
         }
 
         function startLoveHateWar() {
             currentGamePhase = 'war';
-            clearPopups(); document.getElementById('main-bg-mask').style.backgroundColor = 'rgba(26, 26, 26, 0.88)'; isDarkMode = true; initParticles();
+            clearPopups(); document.getElementById('main-bg-mask').style.backgroundColor = 'rgba(26, 26, 26, 0.88)'; isDarkMode = true; 
             let totalPopups = 250; let current = 0;
             function spawnPopup() {
                 if (current >= totalPopups) { safeSetTimeout(showEnding, 2000); return; }
@@ -973,7 +1805,7 @@
         function showEnding() {
             currentGamePhase = 'ending';
             pauseAllBGM();
-            clearPopups(); document.getElementById('main-bg-mask').style.backgroundColor = 'rgba(224, 247, 250, 0.85)'; isDarkMode = false; initParticles(); document.getElementById('pet-widget').style.display = 'none'; 
+            clearPopups(); document.getElementById('main-bg-mask').style.backgroundColor = 'rgba(224, 247, 250, 0.85)'; isDarkMode = false;  document.getElementById('pet-widget').style.display = 'none'; 
             const endingLayer = document.getElementById('ending-layer'); const endingText = document.getElementById('ending-text'); const memoryBtn = document.getElementById('memory-btn'); const forgetBtn = document.getElementById('forget-btn');
             endingLayer.style.display = 'flex'; safeSetTimeout(() => endingLayer.classList.add('show'), 50);
             endingText.style.color = '#FF8FAB'; endingText.style.textShadow = '0 0 20px rgba(255,143,171,0.4)'; endingText.textContent = "我爱你，也是真的。";
@@ -1013,6 +1845,7 @@
             document.getElementById('ending-layer').classList.remove('show');
             safeSetTimeout(() => { document.getElementById('ending-layer').style.display = 'none'; document.getElementById('ending-text').style.color = '#FF8FAB'; document.getElementById('ending-text').style.textShadow = '0 0 20px rgba(255,143,171,0.4)'; document.getElementById('main-bg-mask').style.backgroundColor = 'rgba(224, 247, 250, 0.85)'; }, 1000);
             activatePetWidget(); startFlow();
+            
         }
 
         // ================= 7. 养崽常驻逻辑 =================
@@ -1050,10 +1883,15 @@
         };
 
         document.getElementById('btn-feed').onclick = function(e) { e.stopPropagation(); actionPanel.style.display = actionPanel.style.display === 'block' ? 'none' : 'block'; };
-        window.feedPet = function(food) {
+               window.feedPet = function(food) {
             actionPanel.style.display = 'none'; const now = Date.now();
             if (now - lastFeedTime < 12*60*60*1000) { showPetDialog(`北地笨猪，我已经吃过饭了，吃不下了！\n（还有 ${Math.ceil((12*60*60*1000 - (now - lastFeedTime))/(60*60*1000))} 小时才能再喂哦）`); return; }
             lastFeedTime = now; localStorage.setItem('jh_last_feed', lastFeedTime); affection += 10; updateAffectionUI();
+            // 👇 新增这句话 👇
+            if (window.showAffectionFloat) window.showAffectionFloat(10); 
+            // 【埋点】
+            if(window.AchieveSystem) window.AchieveSystem.addProgress('feed_5', 1);
+
             if (food === '馒头') showPetDialog("又是馒头？小爷我现在身价十两银子，就不能吃点好的？");
             else if (food === '糖葫芦') showPetDialog("唔，糖葫芦！算你有良心，还记着小爷爱吃这个。");
             else showPetDialog("这是什么东西？不过既然是你喂的，小爷就勉为其难喝了吧。");
@@ -1073,17 +1911,29 @@
             }, 1000);
         };
 
-        window.handleHug = function(isHug) {
+                             window.handleHug = function(isHug) {
             const modal = document.getElementById('hug-modal');
             modal.classList.remove('show');
             
             if (isHug) {
                 const now = Date.now();
                 if (now - lastHugTime < 24*60*60*1000) showPetDialog("怎么又要抱？小爷是你想抱就能抱的吗？(今日已无好感加成)");
-                else { lastHugTime = now; localStorage.setItem('jh_last_hug', lastHugTime); affection += 5; updateAffectionUI(); showPetDialog("哼，这还差不多。小爷给你抱一下。"); }
+                else { 
+                    lastHugTime = now; localStorage.setItem('jh_last_hug', lastHugTime); affection += 5; updateAffectionUI(); 
+                    
+                    // 👇 新增这句话 👇
+                    if (window.showAffectionFloat) window.showAffectionFloat(5); 
+                    
+                    showPetDialog("哼，这还差不多。小爷给你抱一下。"); 
+                }
             } else { 
                 affection -= 10; updateAffectionUI(); 
+                
+                // 👇 新增这句话 👇
+                if (window.showAffectionFloat) window.showAffectionFloat(-10); 
+                
                 showPetDialog(affection <= 0 ? "你居然不抱我？好……很好！你会后悔的！" : "你居然不抱我？北地笨猪，你心真狠！"); 
+                if(window.AchieveSystem) window.AchieveSystem.addProgress('hug_no', 1);
             }
         };
 
@@ -2041,11 +2891,50 @@
             datePanel.style.display = 'flex'; 
             datePanel.classList.add('show');
         };
-        
-        document.getElementById('date-close-btn').onclick = function() { 
-            document.getElementById('date-panel').classList.remove('show');
-            document.getElementById('date-panel').style.display = 'none';
+        // 👇👇👇 把新按钮贴在这里 👇👇👇
+                   // 修复大厅点击失效问题，使用 pointerdown 并且阻止冒泡
+    const btnPlayJump = document.getElementById('btn-play-jump');
+    if (btnPlayJump) {
+        btnPlayJump.onclick = function(e) {
+            e.stopPropagation();
+            document.getElementById('pet-menu').classList.remove('show');
+            window.WeatherSystem.pause();
+            clearPopups();
+            isDarkMode = false;
+            document.getElementById('game-hall-layer').style.display = 'flex';
         };
+    }
+
+    // 独立分离的卡片点击事件
+    document.getElementById('hall-select-jump').addEventListener('pointerdown', function(e) {
+        e.preventDefault(); e.stopPropagation();
+        document.getElementById('game-hall-layer').style.display = 'none';
+        window.JumpGame.start();
+    });
+        // 新增：退出大厅按钮逻辑
+    const exitHallBtn = document.getElementById('exit-hall-btn');
+    if (exitHallBtn) {
+        exitHallBtn.onclick = function(e) {
+            e.stopPropagation();
+            document.getElementById('game-hall-layer').style.display = 'none';
+            window.WeatherSystem.resume(); // 恢复天气，防止粒子不动
+        };
+    }
+
+    document.getElementById('hall-select-2048').addEventListener('pointerdown', function(e) {
+        e.preventDefault(); e.stopPropagation();
+        document.getElementById('game-hall-layer').style.display = 'none';
+        window.Game2048.start();
+    });
+
+    document.getElementById('hall-select-claw').addEventListener('pointerdown', function(e) {
+        e.preventDefault(); e.stopPropagation();
+        document.getElementById('game-hall-layer').style.display = 'none';
+        // 强制移除可能挡住它的层级
+        document.getElementById('game-2048-layer').style.display = 'none';
+        document.getElementById('game-center-layer').style.display = 'none';
+        window.ClawMachine.start();
+    });
 
         function renderDatePanel() {
             const listContainer = document.getElementById('date-list-container'); listContainer.innerHTML = '';
@@ -2105,6 +2994,8 @@
                 clearAllGlobalTimers();
                 clearPopups();
                 pauseAllBGM();
+                // 【新增】暂停天气粒子
+                window.WeatherSystem.pause();
                 
                 // 【新增】播放约会专属BGM
                 const dateBgm = document.getElementById('bgm_date');
@@ -2207,7 +3098,7 @@ visitedNodes = []; // 清空已访问节点
                 btn.textContent = opt.label;
                 btn.onclick = (e) => {
                     e.stopPropagation();
-                    if (opt.affChange) { affection += opt.affChange; updateAffectionUI(); }
+                    if (opt.affChange) { affection += opt.affChange; updateAffectionUI();if (window.showAffectionFloat) window.showAffectionFloat(opt.affChange); }
                     if (opt.next === 'END') endStory();
                     else { currentNodeId = opt.next; loadStoryNode(); }
                 };
@@ -2217,6 +3108,8 @@ visitedNodes = []; // 清空已访问节点
 
                 function endStory() {
             clearInterval(typewriterTimer);
+             // 【新增】恢复天气粒子
+            window.WeatherSystem.resume();
             
             // 【新增】停止约会专属BGM
             const dateBgm = document.getElementById('bgm_date');
@@ -2232,7 +3125,7 @@ visitedNodes = []; // 清空已访问节点
             currentStoryId = null; currentNodeId = null;
             
             safeSetTimeout(() => {
-                pauseAllBGM(); clearPopups(); isDarkMode = false; document.getElementById('main-bg-mask').style.backgroundColor = 'rgba(224, 247, 250, 0.85)'; initParticles();
+                pauseAllBGM(); clearPopups(); isDarkMode = false; document.getElementById('main-bg-mask').style.backgroundColor = 'rgba(224, 247, 250, 0.85)'; 
                 document.getElementById('pet-widget').style.display = 'none'; 
                 showEnding();
             }, 600);
@@ -2312,7 +3205,7 @@ function applySave(state) {
 
     isDarkMode = false;
     document.getElementById('main-bg-mask').style.backgroundColor = 'rgba(224, 247, 250, 0.85)';
-    initParticles();
+    
 
     // 3. 如果是文游存档
     if (state.isInStory && state.currentStoryId && state.currentNodeId) {
@@ -2586,6 +3479,17 @@ document.getElementById('btn-history-mode').onclick = function(e) {
 };
         // 启动主流程
         startFlow();
+                // 启动时加载已装备的特效
+        (function initEquipped() {
+            const equipped = getEquipped();
+            applyAccessory(equipped);
+        })();
+                // 强制立刻隐藏加载界面
+        const loaderEl = document.getElementById('loading-screen');
+        if (loaderEl) {
+            loaderEl.style.opacity = '0';
+            setTimeout(() => { loaderEl.style.display = 'none'; }, 500);
+        }
                                        // ================= 完全静默的 PWA 注册 =================
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
@@ -2609,6 +3513,1685 @@ document.getElementById('btn-history-mode').onclick = function(e) {
                 });
             });
         }
-    </script>
+                // ================= 独立命名空间：3D 伪立体跳一跳 =================
+                // ================= 跳一跳 v2.0 (相机跟随+宽容判定+完美蓄力) =================
+               // ================= 跳一跳 v3.0 (平滑镜头+蓝色蓄力+慢动作跳跃) =================
+                // ================= 跳一跳 v4.0 (强制吸附+完美镜头+落地形变) =================
+                // ================= 跳一跳 v5.0 (动态相机+保留轨迹+多变方块+完美吸附) =================
+                // ================= 跳一跳 v5.1 (真·微信手感：精准蓄力+极度宽容判定+发光渐变条) =================
+                // ================= 跳一跳 v6.0 (真实判定+取消吸附+距离分明+滞空跟随) =================
+        // ================= 跳一跳 v7.0 (矩形宽容判定 + 动态瞄准 + 丝滑手感) =================
+// ================= 跳一跳 v8.0 (滞空感翻倍 + 预测落点圈 + 真实抛物线掉落) =================
+// ================= 跳一跳 v8.1 (无预测圈版：滞空感翻倍 + 真实抛物线掉落) =================
+// ================= 跳一跳 v8.2 (数字方块版：滞空感翻倍 + 真实抛物线掉落) =================
+window.JumpGame = (function() {
+    const canvas = document.getElementById('jump-canvas');
+    const ctx = canvas.getContext('2d');
+    const scoreEl = document.getElementById('jump-score');
+    const powerBarContainer = document.getElementById('power-bar-container');
+    const powerBar = document.getElementById('power-bar');
+    const gameOverScreen = document.getElementById('game-over-screen');
+    const finalScoreEl = document.getElementById('final-score');
+    const gameCenterLayer = document.getElementById('game-center-layer');
+
+    let width, height;
+    let isPlaying = false;
+    
+    const R_X = 45;      // 菱形半宽
+    const R_Y = 22;      // 菱形半高
+    const H = 35;        // 方块厚度
+    let SKIN_COLOR = localStorage.getItem('jh_jump_skin') || '#FF69B4'; 
+
+    const COLORS = ['#FFB7C5', '#AEC6CF', '#FFD1DC', '#FDFD96', '#77DD77', '#B39EB5', '#F49AC1', '#84DCC6'];
+
+    let score = 0;
+    let blocks = [];
+    let blockCounter = 0; // 【新增】用于记录方块的序号
+    
+    let player = { x: 0, y: 0, z: 0, rotation: 0, scaleX: 1, scaleY: 1 };
+    
+    let camera = { x: 0, y: 0, targetX: 0, targetY: 0 };
+    
+    let isJumping = false;
+    let isCharging = false;
+    let chargeStartTime = 0;
+    let jumpStartPos = { x: 0, y: 0 };
+    let jumpEndPos = { x: 0, y: 0 };
+    let jumpProgress = 0;
+    
+    const JUMP_SPEED = 0.015; 
+    let chargeAnimId = null;
+    
+    const CHARGE_DURATION = 850;    
+    const MIN_DISTANCE = 35;        
+    const MAX_DISTANCE = 145;       
+
+    function resize() {
+        width = canvas.width = window.innerWidth;
+        height = canvas.height = window.innerHeight;
+    }
+    window.addEventListener('resize', resize);
+
+    // 【修改】传入完整的 block 对象，以便读取 number
+    function drawBlock(block) {
+        const bx = block.x;
+        const by = block.y;
+        const color = block.color;
+        const sx = bx - camera.x;
+        const sy = by - camera.y;
+
+        // 左侧面
+        ctx.beginPath();
+        ctx.moveTo(sx - R_X, sy);
+        ctx.lineTo(sx, sy + R_Y);
+        ctx.lineTo(sx, sy + R_Y + H);
+        ctx.lineTo(sx - R_X, sy + H);
+        ctx.fillStyle = color;
+        ctx.fill();
+        ctx.fillStyle = 'rgba(0,0,0,0.2)'; 
+        ctx.fill();
+
+        // 右侧面
+        ctx.beginPath();
+        ctx.moveTo(sx + R_X, sy);
+        ctx.lineTo(sx, sy + R_Y);
+        ctx.lineTo(sx, sy + R_Y + H);
+        ctx.lineTo(sx + R_X, sy + H);
+        ctx.fillStyle = color;
+        ctx.fill();
+        ctx.fillStyle = 'rgba(0,0,0,0.4)'; 
+        ctx.fill();
+
+        // 顶面
+        ctx.beginPath();
+        ctx.moveTo(sx, sy - R_Y);
+        ctx.lineTo(sx + R_X, sy);
+        ctx.lineTo(sx, sy + R_Y);
+        ctx.lineTo(sx - R_X, sy);
+        ctx.fillStyle = color;
+        ctx.fill();
+        ctx.fillStyle = 'rgba(255,255,255,0.08)';
+        ctx.fill();
+
+        // 【新增】绘制方块上的数字
+        if (block.number !== undefined) {
+            ctx.save();
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.45)'; // 半透明黑色文字
+            ctx.font = 'bold 18px Arial, sans-serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            // 稍微加一点垂直偏移，让它看起来更贴合顶面透视
+            ctx.fillText(block.number, sx, sy + 2); 
+            ctx.restore();
+        }
+    }
+
+    function initGameData() {
+        resize();
+        score = 0;
+        scoreEl.innerText = score;
+        isJumping = false;
+        isCharging = false;
+        player.scaleX = 1;
+        player.scaleY = 1;
+        player.rotation = 0;
+        player.z = 0;
+
+        // 【修改】初始化前两个方块的数字序号
+        blockCounter = 2;
+        blocks = [
+            { x: 0, y: 0, color: COLORS[0], number: 1 },
+            { x: 75, y: -75, color: COLORS[1], number: 2 }
+        ];
+        player.x = blocks[0].x;
+        player.y = blocks[0].y;
+
+        camera.targetX = player.x - width / 2;
+        camera.targetY = player.y - height * 0.65;
+        camera.x = camera.targetX;
+        camera.y = camera.targetY;
+
+        gameOverScreen.style.display = 'none';
+        powerBarContainer.style.display = 'none';
+        isPlaying = true;
+        
+        requestAnimationFrame(gameLoop);
+    }
+
+    function gameLoop() {
+        if (!isPlaying) return;
+        ctx.clearRect(0, 0, width, height);
+
+        // 相机平滑
+        if (isJumping) {
+            camera.targetX = player.x - width / 2;
+            camera.targetY = player.y - height * 0.5;
+        } else if (blocks.length >= 2) {
+            camera.targetX = player.x - width * 0.42;
+            camera.targetY = player.y - height * 0.58;
+        }
+        
+        camera.x += (camera.targetX - camera.x) * 0.15;
+        camera.y += (camera.targetY - camera.y) * 0.15;
+
+        // 【修改】改为传入整个 block 对象
+        blocks.forEach(b => drawBlock(b));
+
+        const px = player.x - camera.x;
+        const py = player.y - camera.y - player.z;
+
+        // 阴影
+        ctx.beginPath();
+        const shadowScale = Math.max(0.3, 1 - player.z / 250);
+        ctx.ellipse(px, player.y - camera.y + 10, 12 * shadowScale, 6 * shadowScale, 0, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(0,0,0,0.3)';
+        ctx.fill();
+
+        // 小人
+        ctx.save();
+        ctx.translate(px, py);
+        ctx.rotate(player.rotation);
+        ctx.scale(player.scaleX, player.scaleY);
+        
+        // 挤压效果平滑恢复
+        player.scaleX += (1 - player.scaleX) * 0.15;
+        player.scaleY += (1 - player.scaleY) * 0.15;
+
+        ctx.beginPath();
+        ctx.fillStyle = SKIN_COLOR;
+        if (ctx.roundRect) {
+            ctx.roundRect(-10, -35, 20, 35, [10,10,5,5]);
+        } else {
+            ctx.rect(-10, -35, 20, 35);
+        }
+        ctx.fill();
+        
+        ctx.beginPath();
+        ctx.fillStyle = '#fff';
+        ctx.arc(0, -30, 6, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+
+        // 跳跃插值
+        if (isJumping) {
+            jumpProgress += JUMP_SPEED;
+            if (jumpProgress > 1) jumpProgress = 1;
+
+            const t = jumpProgress;
+            player.x = jumpStartPos.x + (jumpEndPos.x - jumpStartPos.x) * t;
+            player.y = jumpStartPos.y + (jumpEndPos.y - jumpStartPos.y) * t;
+            
+            // 抛物线最高点变高，滞空感更强
+            player.z = Math.sin(t * Math.PI) * 110;
+            player.rotation = t * Math.PI * 2;
+
+            if (jumpProgress === 1) {
+                isJumping = false;
+                checkLanding(); 
+            }
+        }
+
+        requestAnimationFrame(gameLoop);
+    }
+
+    function startCharge(e) {
+        if (!isPlaying || isCharging || isJumping) return;
+        isCharging = true;
+        chargeStartTime = Date.now();
+        powerBarContainer.style.display = 'block';
+        powerBar.style.width = '0%';
+        
+        // 蓄力形变
+        player.scaleX = 1.25;
+        player.scaleY = 0.75;
+
+        function updateBar() {
+            if (!isCharging) return;
+            const elapsed = Date.now() - chargeStartTime;
+            const power = Math.min((elapsed / CHARGE_DURATION) * 100, 100);
+            powerBar.style.width = power + '%';
+            chargeAnimId = requestAnimationFrame(updateBar);
+        }
+        updateBar();
+    }
+
+    function releaseCharge() {
+        if (!isPlaying || !isCharging) return;
+        isCharging = false;
+        if (chargeAnimId) cancelAnimationFrame(chargeAnimId);
+        powerBarContainer.style.display = 'none';
+        
+        player.scaleX = 1;
+        player.scaleY = 1;
+
+        const elapsed = Date.now() - chargeStartTime;
+        let power = Math.min((elapsed / CHARGE_DURATION) * 100, 100);
+        if (power < 5) power = 5;
+
+        jumpStartPos = { x: player.x, y: player.y };
+        
+        const distance = MIN_DISTANCE + (power / 100) * (MAX_DISTANCE - MIN_DISTANCE);
+        const target = blocks[blocks.length - 1];
+        // 朝向目标方块的方向起跳
+        const angle = Math.atan2(target.y - player.y, target.x - player.x);
+        
+        jumpEndPos = {
+            x: player.x + distance * Math.cos(angle),
+            y: player.y + distance * Math.sin(angle)
+        };
+        
+        // 起跳拉伸形变
+        player.scaleX = 0.8;
+        player.scaleY = 1.2;
+
+        jumpProgress = 0;
+        isJumping = true;
+    }
+
+    function checkLanding() {
+        const target = blocks[blocks.length - 1];
+        const dx = player.x - target.x;
+        const dy = player.y - target.y;
+        
+        // 宽容判定
+        const isHit = (Math.abs(dx) / (R_X + 5)) + (Math.abs(dy) / (R_Y + 5)) <= 1.0;
+
+        if (isHit) {
+            // 落地成功，高度归零
+            player.z = 0;
+            player.rotation = 0;
+            
+            score++;
+            scoreEl.innerText = score;
+
+            // 落地挤压动画
+            player.scaleX = 1.4;
+            player.scaleY = 0.6;
+
+            const nextDist = 65 + Math.random() * 65;
+            const angle = -Math.PI / 4 + (Math.random() - 0.5) * 0.12;
+            
+            // 【修改】生成新方块时，增加 number 属性
+            blockCounter++;
+            blocks.push({
+                x: target.x + nextDist * Math.cos(angle),
+                y: target.y + nextDist * Math.sin(angle),
+                color: COLORS[Math.floor(Math.random() * COLORS.length)],
+                number: blockCounter
+            });
+
+            if (blocks.length > 6) blocks.shift();
+
+        } else {
+            // 失败掉落：保留水平惯性，一边转一边抛物线掉下去
+            isPlaying = false; 
+            
+            let vx = (jumpEndPos.x - jumpStartPos.x) * 0.02;
+            let vy = (jumpEndPos.y - jumpStartPos.y) * 0.02;
+            let fallSpeedZ = 0;
+            
+            function fallDown() {
+                player.x += vx;
+                player.y += vy;
+                vx *= 0.95;
+                vy *= 0.95;
+                
+                fallSpeedZ += 1.5;
+                player.z -= fallSpeedZ;
+                player.rotation += 0.08;
+                
+                camera.targetX = player.x - width / 2;
+                camera.targetY = player.y - height * 0.5;
+                camera.x += (camera.targetX - camera.x) * 0.15;
+                camera.y += (camera.targetY - camera.y) * 0.15;
+
+                ctx.clearRect(0, 0, width, height);
+                // 【修改】这里的调用也改为传入对象
+                blocks.forEach(b => drawBlock(b));
+                
+                const px = player.x - camera.x;
+                const py = player.y - camera.y - player.z;
+                
+                // 阴影变红
+                ctx.beginPath();
+                ctx.ellipse(player.x - camera.x, player.y - camera.y + 10, 12, 6, 0, 0, Math.PI * 2);
+                ctx.fillStyle = 'rgba(255,0,0,0.4)'; 
+                ctx.fill();
+
+                ctx.save();
+                ctx.translate(px, py);
+                ctx.rotate(player.rotation);
+                ctx.beginPath();
+                ctx.fillStyle = SKIN_COLOR;
+                ctx.roundRect ? ctx.roundRect(-10, -35, 20, 35, [10,10,5,5]) : ctx.rect(-10, -35, 20, 35);
+                ctx.fill();
+                ctx.restore();
+
+                if (py > height + 100) {
+                    gameOver();
+                } else {
+                    requestAnimationFrame(fallDown);
+                }
+            }
+            fallDown();
+        }
+    }
+
+            function gameOver() {
+        isPlaying = false;
+        finalScoreEl.innerText = score;
+        
+        if (score > 0) {
+            // 金币结算
+            let currentCoins = parseInt(localStorage.getItem('jh_coins')) || 0;
+            currentCoins += score; 
+            localStorage.setItem('jh_coins', currentCoins);
+            finalScoreEl.innerHTML = `${score} <br><span style="font-size:14px;color:#FFA000;">获得 ${score} 金币</span>`;
+            
+            // 【核心修改】游戏结束，立刻自动、静默上传分数！
+            if (window.LeaderboardSystem && window.LeaderboardSystem.autoSubmit) {
+                window.LeaderboardSystem.autoSubmit(score);
+            }
+
+            // 修改结算界面的按钮文字，告诉玩家已经自动保存了
+            const gameOverScreen = document.getElementById('game-over-screen');
+            let rankBtn = document.getElementById('rank-btn');
+            if (!rankBtn) {
+                rankBtn = document.createElement('button');
+                rankBtn.id = 'rank-btn';
+                rankBtn.className = 'special-btn';
+                rankBtn.style.cssText = 'margin-bottom: 20px; width: 200px; background: #FFB7C5; color: white;';
+                // 插入到“再来一局”按钮前面
+                const restartBtn = document.getElementById('restart-game-btn');
+                restartBtn.parentNode.insertBefore(rankBtn, restartBtn);
+            }
+            rankBtn.innerHTML = '🏆 已自动上榜，查看排行榜';
+            rankBtn.onclick = () => {
+                gameOverScreen.style.display = 'none';
+                window.LeaderboardSystem.open();
+            };
+        
+            // 【新增】跳一跳成就判断
+            if (score >= 50 && window.AchieveSystem) {
+                window.AchieveSystem.addProgress('jump_50', 1);
+            }
+        } 
+        
+        gameOverScreen.style.display = 'flex';
+    }
+    // 👈 注意：这个函数到此结束，下面不要再有多余的 } 了！
+
+    document.getElementById('restart-game-btn').onclick = () => initGameData();
+        document.getElementById('exit-game-btn').onclick = () => { isPlaying = false; gameCenterLayer.style.display = 'none'; document.getElementById('game-hall-layer').style.display = 'flex'; };
+    document.getElementById('back-menu-btn').onclick = () => { gameCenterLayer.style.display = 'none'; document.getElementById('game-hall-layer').style.display = 'flex'; };
+    document.getElementById('back-menu-btn').onclick = () => { gameCenterLayer.style.display = 'none'; };
+    
+    canvas.addEventListener('pointerdown', startCharge);
+    canvas.addEventListener('pointerup', releaseCharge);
+
+    return {
+        start: function() { gameCenterLayer.style.display = 'flex'; initGameData(); },
+        setSkinColor: function(color) { SKIN_COLOR = color; }
+    };
+})();
+    
+                  // ================= 全新的抽卡、装扮与背包系统 =================
+        
+        // 所有物品的大全（包含旧版兼容）
+        const ALL_ITEMS = {
+            // R 级：基础 Emoji 挂件
+            'crown': { id: 'crown', name: '皇冠', emoji: '👑', type: 'accessory', rarity: 'R', desc: '戴上它就是女王。' },
+            'cat_ears': { id: 'cat_ears', name: '猫耳', emoji: '🐱', type: 'accessory', rarity: 'R', desc: '喵喵喵？' },
+            'glasses': { id: 'glasses', name: '墨镜', emoji: '🕶️', type: 'accessory', rarity: 'R', desc: '冷酷无情。' },
+            
+            // SR 级：特殊头像框/名字特效
+            'frame_rainbow': { id: 'frame_rainbow', name: '彩虹流光', emoji: '🌈', type: 'frame', rarity: 'SR', desc: '头像拥有七彩流光边框。' },
+            'name_glow': { id: 'name_glow', name: '粉色霓虹', emoji: '✨', type: 'effect', rarity: 'SR', desc: '主界面小人的名字会发光。' },
+
+            // SSR 级：传说跳一跳皮肤
+            'skin_silver': { id: 'skin_silver', name: '金属银', emoji: '⚙️', type: 'skin', color: '#C0C0C0', rarity: 'SSR', desc: '跳一跳专属：赛博金属皮肤。' },
+            'skin_sakura': { id: 'skin_sakura', name: '樱花粉', emoji: '🌸', type: 'skin', color: '#FFB7C5', rarity: 'SSR', desc: '跳一跳专属：落樱缤纷皮肤。' }
+        };
+
+        // 获取当前装备状态
+        function getEquipped() {
+            return JSON.parse(localStorage.getItem('jh_equipped')) || { accessory: null, frame: null, effect: null, skin: null };
+        }
+        
+        // 保存装备状态并应用
+        function saveAndApplyEquipped(equipped) {
+            localStorage.setItem('jh_equipped', JSON.stringify(equipped));
+            applyAccessory(equipped);
+        }
+
+        // 核心应用特效函数
+        function applyAccessory(equipped) {
+            const avatar = document.getElementById('jianghan-avatar');
+            const accEl = document.getElementById('avatar-accessory');
+            
+            // 1. 处理 Emoji 挂件
+            if (equipped.accessory && ALL_ITEMS[equipped.accessory]) {
+                accEl.innerText = ALL_ITEMS[equipped.accessory].emoji;
+                accEl.style.display = 'block';
+            } else {
+                accEl.style.display = 'none';
+            }
+
+            // 2. 处理头像框
+            if (equipped.frame === 'frame_rainbow') {
+                avatar.classList.add('frame-rainbow');
+            } else {
+                avatar.classList.remove('frame-rainbow');
+            }
+
+            // 3. 处理名字发光（这里以主界面左上角好感度框的名字为例）
+            const nameLabel = document.querySelector('#affection-container');
+            if (equipped.effect === 'name_glow' && nameLabel) {
+                nameLabel.classList.add('name-glow');
+            } else if (nameLabel) {
+                nameLabel.classList.remove('name-glow');
+            }
+
+            // 4. 处理跳一跳皮肤
+            if (equipped.skin && ALL_ITEMS[equipped.skin]) {
+                if (window.JumpGame && window.JumpGame.setSkinColor) {
+                    window.JumpGame.setSkinColor(ALL_ITEMS[equipped.skin].color);
+                }
+            } else {
+                if (window.JumpGame && window.JumpGame.setSkinColor) {
+                    window.JumpGame.setSkinColor('#FF69B4'); // 默认粉色
+                }
+            }
+        }
+
+        // ================= 背包系统 =================
+        window.InventorySystem = (function() {
+            const layer = document.getElementById('inventory-layer');
+            const grid = document.getElementById('inventory-grid');
+            const fragsEl = document.getElementById('inv-frags');
+
+            function render() {
+                const inv = JSON.parse(localStorage.getItem('jh_inventory')) || [];
+                const equipped = getEquipped();
+                fragsEl.innerText = localStorage.getItem('jh_fragments') || 0;
+                grid.innerHTML = '';
+
+                // 遍历所有物品，只显示已经拥有的
+                let hasItems = false;
+                for (let key in ALL_ITEMS) {
+                    if (inv.includes(key)) {
+                        hasItems = true;
+                        const item = ALL_ITEMS[key];
+                        const isEquipped = equipped[item.type] === item.id;
+                        
+                        const el = document.createElement('div');
+                        el.className = 'inv-item';
+                        if (isEquipped) el.style.border = '3px solid #FF69B4';
+                        el.innerHTML = `
+                            <div class="inv-icon">${item.emoji}</div>
+                            <div class="inv-name" style="color:${isEquipped?'#FF69B4':'#666'}">${item.name} ${isEquipped?'(已装备)':''}</div>
+                        `;
+                        el.onclick = () => toggleEquip(item);
+                        grid.appendChild(el);
+                    }
+                }
+
+                if (!hasItems) {
+                    grid.innerHTML = '<div style="grid-column: span 3; text-align: center; color: #999; padding: 20px;">背包空空如也，去抽卡吧！</div>';
+                }
+            }
+
+            function toggleEquip(item) {
+                let equipped = getEquipped();
+                // 如果点的是已经装备的，就卸下；否则换上
+                if (equipped[item.type] === item.id) {
+                    equipped[item.type] = null;
+                } else {
+                    equipped[item.type] = item.id;
+                }
+                saveAndApplyEquipped(equipped);
+                render(); // 刷新背包界面高亮
+                
+                // 如果是换皮肤，给个弹窗提示
+                if (item.type === 'skin' && equipped.skin) {
+                    alert(`已装备 ${item.name}，快去跳一跳看看吧！`);
+                }
+            }
+
+            return {
+                open: function() { render(); layer.style.display = 'flex'; },
+                close: function() { layer.style.display = 'none'; }
+            };
+        })();
+
+        document.getElementById('btn-open-inventory').onclick = function(e) {
+            e.stopPropagation();
+            document.getElementById('pet-menu').classList.remove('show');
+            window.InventorySystem.open();
+        };
+
+        // ================= 全新抽卡系统 =================
+        window.GachaSystem = (function() {
+            const PAY_COST = 100;
+            const FREE_COOLDOWN = 24 * 60 * 60 * 1000; // 24小时
+            const QUOTES = ["北地笨猪，你是不是怕了？", "风清雁，我喜欢你。", "你别怕，天塌下来也有我顶着。", "小爷我啊，最怕你哭了。", "我叫风清砚，砚台的砚。"];
+
+            let coins = parseInt(localStorage.getItem('jh_coins')) || 0;
+            let fragments = parseInt(localStorage.getItem('jh_fragments')) || 0;
+            let lastFreeTime = parseInt(localStorage.getItem('jh_last_free_time')) || 0;
+            let inventory = JSON.parse(localStorage.getItem('jh_inventory')) || [];
+
+            // UI 元素
+            const layer = document.getElementById('gacha-layer');
+            const animOverlay = document.getElementById('gacha-anim-overlay');
+            const flashEffect = document.getElementById('gacha-flash-effect');
+            const cardUI = document.getElementById('gacha-card-ui');
+            const cardFront = document.getElementById('gacha-card-front');
+            const okBtn = document.getElementById('gacha-ok-btn');
+            
+            const coinsEl = document.getElementById('gacha-coins');
+            const fragsEl = document.getElementById('gacha-fragments');
+            const freeBtn = document.getElementById('btn-gacha-free');
+            const payBtn = document.getElementById('btn-gacha-pay');
+            const synthBtn = document.getElementById('btn-gacha-synth');
+
+            function updateUI() {
+                coinsEl.innerText = coins;
+                fragsEl.innerText = fragments;
+                
+                const now = Date.now();
+                const gachaDot = document.getElementById('gacha-red-dot');
+                
+                if (now - lastFreeTime >= FREE_COOLDOWN) {
+                    freeBtn.innerText = "每日免费一抽 (可用)";
+                    freeBtn.classList.add('free');
+                    freeBtn.disabled = false;
+                    if (gachaDot) gachaDot.style.display = 'block'; // 显示红点
+                } else {
+                    const remain = Math.ceil((FREE_COOLDOWN - (now - lastFreeTime)) / (60 * 60 * 1000));
+                    freeBtn.innerText = `每日免费 (${remain}小时后)`;
+                    freeBtn.classList.remove('free');
+                    freeBtn.disabled = true;
+                    if (gachaDot) gachaDot.style.display = 'none'; // 隐藏红点
+                }
+            }
+
+            // 核心：执行抽卡并展示动画
+            function drawCard(isFree = false) {
+                if (!isFree) {
+                    if (coins < PAY_COST) { alert("金币不足！去玩几局游戏吧。"); return; }
+                    coins -= PAY_COST;
+                } else {
+                    lastFreeTime = Date.now();
+                    localStorage.setItem('jh_last_free_time', lastFreeTime);
+                }
+                localStorage.setItem('jh_coins', coins);
+
+                // 1. 抽卡概率计算
+                let rand = Math.random();
+                let result = { rarity: 'N', item: null, isDup: false, quote: '' };
+
+                if (rand < 0.02) { // 2% SSR
+                    result.rarity = 'SSR';
+                    let ssrList = Object.values(ALL_ITEMS).filter(i => i.rarity === 'SSR');
+                    result.item = ssrList[Math.floor(Math.random() * ssrList.length)];
+                } else if (rand < 0.10) { // 8% SR
+                    result.rarity = 'SR';
+                    let srList = Object.values(ALL_ITEMS).filter(i => i.rarity === 'SR');
+                    result.item = srList[Math.floor(Math.random() * srList.length)];
+                } else if (rand < 0.40) { // 30% R
+                    result.rarity = 'R';
+                    let rList = Object.values(ALL_ITEMS).filter(i => i.rarity === 'R');
+                    result.item = rList[Math.floor(Math.random() * rList.length)];
+                } else { // 60% N
+                    result.rarity = 'N';
+                    if (Math.random() < 0.5) {
+                        result.item = { emoji: '🪙', name: '金币', type: 'coins', desc: '获得 50 金币' };
+                        coins += 50;
+                        localStorage.setItem('jh_coins', coins);
+                    } else {
+                        result.quote = QUOTES[Math.floor(Math.random() * QUOTES.length)];
+                        result.item = { emoji: '💬', name: '江寒的心里话', type: 'quote', desc: `"${result.quote}"` };
+                         if (window.GallerySystem) window.GallerySystem.addQuote(result.quote);
+                    }
+                }
+
+                // 2. 处理重复获取
+                if (['R', 'SR', 'SSR'].includes(result.rarity)) {
+                    if (inventory.includes(result.item.id)) {
+                        result.isDup = true;
+                        fragments++;
+                        localStorage.setItem('jh_fragments', fragments);
+                        result.item.desc = `重复获得，自动转化为 1 个碎片。`;
+                    } else {
+                        inventory.push(result.item.id);
+                        localStorage.setItem('jh_inventory', JSON.stringify(inventory));
+                        result.item.desc = ALL_ITEMS[result.item.id].desc || '已自动放入背包！';
+                    }
+                }
+
+                               // 3. 播放动画
+                animOverlay.style.display = 'flex';
+                okBtn.style.display = 'none';
+                cardUI.classList.remove('flipped');
+                flashEffect.classList.remove('active');
+                
+                // 闪白屏
+                void flashEffect.offsetWidth; 
+                flashEffect.classList.add('active');
+
+                // 配置卡片内容
+                document.getElementById('gacha-rarity-text').innerText = result.rarity;
+                document.getElementById('gacha-item-icon').innerText = result.item.emoji;
+                document.getElementById('gacha-item-name').innerText = result.item.name;
+                document.getElementById('gacha-item-desc').innerText = result.item.desc;
+                
+                cardFront.className = `gacha-card-front rarity-${result.rarity}`;
+
+                                                // 0.8秒后翻牌
+                setTimeout(() => {
+                    cardUI.classList.add('flipped');
+                    okBtn.style.display = 'block';
+                    
+                    // 音效与震动反馈
+                    if (['SSR', 'SR'].includes(result.rarity)) {
+                        window.SoundSystem.playWin();
+                        vibrateDevice([100, 50, 100]); // 连续震动
+                    } else {
+                        vibrateDevice(50);
+                    }
+
+                    const closeAnim = (e) => {
+                        if(e) e.stopPropagation();
+                        animOverlay.style.display = 'none';
+                        animOverlay.onclick = null; 
+                        updateUI();
+                    };
+                    
+                    okBtn.onclick = closeAnim;
+                    animOverlay.onclick = closeAnim; 
+                }, 800);
+            }
+                    
+
+            function synthesize() {
+                if (fragments < 3) { alert("碎片不足 3 个，无法合成。"); return; }
+                
+                // 找出未拥有的所有装扮
+                let missing = Object.values(ALL_ITEMS).filter(item => !inventory.includes(item.id));
+                if (missing.length === 0) { alert("恭喜！你已经集齐了所有装扮！"); return; }
+
+                fragments -= 3;
+                localStorage.setItem('jh_fragments', fragments);
+
+                // 优先合成未拥有的
+                let item = missing[Math.floor(Math.random() * missing.length)];
+                inventory.push(item.id);
+                localStorage.setItem('jh_inventory', JSON.stringify(inventory));
+                
+                alert(`消耗3个碎片，合成成功！\n获得：${item.name}\n已自动放入背包。`);
+                updateUI();
+            }
+
+            freeBtn.onclick = () => drawCard(true);
+            payBtn.onclick = () => drawCard(false);
+            synthBtn.onclick = synthesize;
+
+            return {
+                open: function() {
+                    coins = parseInt(localStorage.getItem('jh_coins')) || 0;
+                    fragments = parseInt(localStorage.getItem('jh_fragments')) || 0;
+                    inventory = JSON.parse(localStorage.getItem('jh_inventory')) || [];
+                    updateUI();
+                    layer.style.display = 'flex';
+                },
+                close: function() {
+                    layer.style.display = 'none';
+                }
+            };
+        })();
+
+        document.getElementById('btn-open-gacha').onclick = function(e) {
+            e.stopPropagation();
+            document.getElementById('pet-menu').classList.remove('show');
+            window.GachaSystem.open();
+        };
+                // ================= 好感度飘字反馈 =================
+        window.showAffectionFloat = function(amount) {
+            if (amount === 0) return;
+            const el = document.createElement('div');
+            el.className = 'aff-float';
+            
+            // 根据正负判断颜色
+            if (amount > 0) {
+                el.style.color = '#FF69B4'; // 粉色
+                el.textContent = `+${amount}`;
+            } else {
+                el.style.color = '#B22222'; // 暗红色
+                el.textContent = `${amount}`;
+            }
+            
+            // 获取左上角好感度条的位置
+            const target = document.getElementById('affection-container');
+            if (target) {
+                const rect = target.getBoundingClientRect();
+                el.style.left = (rect.left + rect.width / 2 + 20) + 'px';
+                el.style.top = (rect.top + 10) + 'px';
+            } else {
+                // 兜底位置
+                el.style.left = '50%';
+                el.style.top = '20%';
+            }
+            
+            document.body.appendChild(el);
+            
+            // 动画结束后销毁元素
+            setTimeout(() => el.remove(), 1200);
+        };
+
+        // ================= 回忆长廊系统 =================
+        window.GallerySystem = (function() {
+            const layer = document.getElementById('gallery-layer');
+            const contentEl = document.getElementById('gallery-content');
+            const detailModal = document.getElementById('gallery-detail-modal');
+            const detailText = document.getElementById('gallery-detail-text');
+            let currentTab = 'quotes'; // 'quotes' | 'stories'
+
+            // 获取已存的未说出口的话
+            function getSavedQuotes() {
+                return JSON.parse(localStorage.getItem('jh_gallery_quotes')) || [];
+            }
+
+            // 添加情话（抽卡时调用）
+            function addQuote(quote) {
+                let quotes = getSavedQuotes();
+                if (!quotes.includes(quote)) {
+                    quotes.push(quote);
+                    localStorage.setItem('jh_gallery_quotes', JSON.stringify(quotes));
+                }
+            }
+
+            // 渲染列表
+            function render() {
+                contentEl.innerHTML = '';
+                
+                if (currentTab === 'quotes') {
+                    const quotes = getSavedQuotes();
+                    if (quotes.length === 0) {
+                        contentEl.innerHTML = '<div style="text-align:center; color:#999; padding:20px;">还没有抽到过情话哦，去抽卡吧。</div>';
+                        return;
+                    }
+                    quotes.forEach(q => {
+                        const el = document.createElement('div');
+                        el.className = 'gallery-item';
+                        el.innerHTML = `
+                            <div class="gallery-item-title">💬 江寒的心里话</div>
+                            <div class="gallery-item-preview">"${q}"</div>
+                        `;
+                        el.onclick = () => {
+                            detailText.innerHTML = `“${q}”`;
+                            detailModal.style.display = 'flex';
+                        };
+                        contentEl.appendChild(el);
+                    });
+                } else if (currentTab === 'stories') {
+                    // 读取已解锁剧情
+                    const unlockedKeys = JSON.parse(localStorage.getItem('jh_unlocked_stories')) || [];
+                    
+                    // 遍历全局的 DATE_STORIES 对象
+                    for (let key in DATE_STORIES) {
+                        const story = DATE_STORIES[key];
+                        const isUnlocked = unlockedKeys.includes(key);
+                        const isSecretUnlocked = key === 'ten_lives' && ['lv1','lv2','lv3','lv4','lv5','lv6','lv7','lv8','lv9'].every(k => unlockedKeys.includes(k));
+                        
+                        const finalUnlock = isUnlocked || isSecretUnlocked;
+
+                        const el = document.createElement('div');
+                        el.className = 'gallery-item' + (finalUnlock ? '' : ' locked');
+                        el.innerHTML = `
+                            <div class="gallery-item-title">${finalUnlock ? '✨' : '🔒'} ${story.name}</div>
+                            <div class="gallery-item-preview">${finalUnlock ? '点击回顾剧情精彩瞬间' : '好感度未达到要求，或尚未体验'}</div>
+                        `;
+                        
+                        if (finalUnlock) {
+                            el.onclick = () => {
+                                // 预览：截取第一章的第一段作为详情展示
+                                const firstNode = story.nodes['start'];
+                                const previewText = firstNode ? firstNode.text.split('\n\n')[0] : '暂无内容';
+                                detailText.innerHTML = `<strong>【${story.name}】</b><br><br>${previewText}<br><br><span style="color:#999;font-size:12px;">（更多精彩，请去“约会”中体验）</span>`;
+                                detailModal.style.display = 'flex';
+                            };
+                        } else {
+                            el.onclick = () => {
+                                alert('这段回忆还没有解锁哦，快去提升好感度或体验剧情吧。');
+                            };
+                        }
+                        contentEl.appendChild(el);
+                    }
+                }
+            }
+
+            // 初始化绑定
+            document.getElementById('gallery-menu-btn').onclick = function(e) {
+                e.stopPropagation();
+                document.getElementById('pet-menu').classList.remove('show');
+                render();
+                layer.style.display = 'flex';
+            };
+            document.getElementById('gallery-close-btn').onclick = () => layer.style.display = 'none';
+
+            return {
+                switchTab: function(tab) {
+                    currentTab = tab;
+                    document.getElementById('tab-quotes').classList.toggle('active', tab === 'quotes');
+                    document.getElementById('tab-stories').classList.toggle('active', tab === 'stories');
+                    render();
+                },
+                addQuote: addQuote
+            };
+        })();
+        // ================= 排行榜系统 (包含 Supabase 和 本地 Mock) =================
+// ================= 排行榜系统 (自动同步 + 最高分覆盖) =================
+window.LeaderboardSystem = (function() {
+    const layer = document.getElementById('leaderboard-layer');
+    const closeBtn = document.getElementById('leaderboard-close-btn');
+    const listContainer = document.getElementById('leaderboard-list');
+    const nameInput = document.getElementById('player-name-input');
+    const avatarBox = document.getElementById('player-avatar-box');
+    const fileInput = document.getElementById('avatar-upload-input');
+    
+    // 隐藏掉原来的手动提交按钮，不再需要了
+    const submitBtn = document.getElementById('submit-score-btn');
+    if (submitBtn) submitBtn.style.display = 'none';
+
+    // ⚠️ 填入你的 Supabase 信息 ⚠️ (不要带 /rest/v1/)
+    const SUPABASE_URL = 'https://ivlpxasyudonddaywfpu.supabase.co'; 
+    const SUPABASE_ANON_KEY = 'sb_publishable_dcTXpJixc-mTfqWp-qFNDQ_2kmzwhBg';
+    
+    let supabaseClient = null;
+    let isMockMode = false; 
+
+    // 初始化 Supabase
+    try {
+        if (SUPABASE_URL.includes('YOUR_') || !window.supabase) {
+            isMockMode = true;
+            console.log('【排行榜】使用本地 Mock 模式');
+        } else {
+            supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        }
+    } catch(e) {
+        isMockMode = true;
+    }
+
+    // 获取或生成玩家的唯一ID (UUID)
+    function getPlayerId() {
+        let pid = localStorage.getItem('jh_player_id');
+        if (!pid) {
+            pid = 'user_' + Date.now() + '_' + Math.floor(Math.random() * 10000);
+            localStorage.setItem('jh_player_id', pid);
+        }
+        return pid;
+    }
+
+    function loadUserInfo() {
+        nameInput.value = localStorage.getItem('jh_player_name') || '北地笨猪';
+        const savedAvatar = localStorage.getItem('jh_player_avatar');
+        if (savedAvatar) {
+            avatarBox.style.backgroundImage = `url(${savedAvatar})`;
+            avatarBox.querySelector('span').style.display = 'none';
+        }
+    }
+
+    // 监听名字输入并保存
+    nameInput.addEventListener('input', (e) => {
+        localStorage.setItem('jh_player_name', e.target.value);
+    });
+
+    // 头像上传与压缩
+    avatarBox.addEventListener('click', () => fileInput.click());
+    fileInput.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = function(event) {
+            const img = new Image();
+            img.onload = function() {
+                const canvas = document.createElement('canvas');
+                canvas.width = 100; canvas.height = 100;
+                const ctx = canvas.getContext('2d');
+                const size = Math.min(img.width, img.height);
+                const x = (img.width - size) / 2;
+                const y = (img.height - size) / 2;
+                ctx.drawImage(img, x, y, size, size, 0, 0, 100, 100);
+                const base64 = canvas.toDataURL('image/jpeg', 0.8);
+                localStorage.setItem('jh_player_avatar', base64);
+                avatarBox.style.backgroundImage = `url(${base64})`;
+                avatarBox.querySelector('span').style.display = 'none';
+            };
+            img.src = event.target.result;
+        };
+        reader.readAsDataURL(file);
+    });
+
+    // 拉取排行榜
+    async function fetchLeaderboard() {
+        listContainer.innerHTML = '<div style="text-align:center;color:#999;margin-top:20px;">加载中...</div>';
+        let data = [];
+
+        if (isMockMode) {
+            data = [
+                { name: '北地笨猪', score: 88, avatar: '' },
+                { name: '风清砚', score: 45, avatar: '' }
+            ];
+        } else {
+            const { data: sbData, error } = await supabaseClient
+                .from('leaderboard')
+                .select('name, score, avatar')
+                .order('score', { ascending: false })
+                .limit(50);
+            
+            if (error) {
+                listContainer.innerHTML = `<div style="color:red;text-align:center;">加载失败: ${error.message}</div>`;
+                return;
+            }
+            data = sbData;
+        }
+
+        listContainer.innerHTML = '';
+        if (data.length === 0) {
+            listContainer.innerHTML = '<div style="text-align:center;color:#999;margin-top:20px;">还没有人上榜，快来抢占第一！</div>';
+            return;
+        }
+
+        data.forEach((item, index) => {
+            const rank = index + 1;
+            let rankEmoji = rank;
+            if (rank === 1) rankEmoji = '🥇';
+            else if (rank === 2) rankEmoji = '🥈';
+            else if (rank === 3) rankEmoji = '🥉';
+
+            const defaultAvatar = `https://api.dicebear.com/7.x/adventurer/svg?seed=${encodeURIComponent(item.name)}`;
+            const avatarUrl = item.avatar || defaultAvatar;
+
+            const row = document.createElement('div');
+            row.style.cssText = 'display: flex; align-items: center; gap: 10px; padding: 8px; border-bottom: 1px dashed #eee;';
+            row.innerHTML = `
+                <div style="width: 30px; font-weight: bold; font-size: 18px; text-align: center; color: ${rank<=3?'#FF69B4':'#666'};">${rankEmoji}</div>
+                <img src="${avatarUrl}" style="width: 35px; height: 35px; border-radius: 50%; background: #eee; object-fit: cover;">
+                <div style="flex: 1; font-size: 14px; font-weight: bold; color: #333; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${item.name}</div>
+                <div style="font-weight: bold; color: #FFA000;">${item.score} 分</div>
+            `;
+            listContainer.appendChild(row);
+        });
+    }
+
+    // 核心：自动同步最高分
+    async function autoSubmitScore(score) {
+        if (isMockMode || score <= 0) return;
+        
+        const playerId = getPlayerId();
+        const name = nameInput.value.trim() || '无名氏';
+        const avatar = localStorage.getItem('jh_player_avatar') || '';
+
+        try {
+            // 1. 先查这个玩家有没有记录
+            const { data, error } = await supabaseClient
+                .from('leaderboard')
+                .select('id, score')
+                .eq('player_id', playerId)
+                .maybeSingle(); // 如果没有找到，返回 null 而不是报错
+
+            if (error) { console.error(error); return; }
+
+            if (!data) {
+                // 没有记录 -> 插入新数据
+                await supabaseClient.from('leaderboard').insert([
+                    { player_id: playerId, name: name, score: score, avatar: avatar }
+                ]);
+            } else if (score > data.score) {
+                // 有记录，且新分数更高 -> 更新分数、名字、头像
+                await supabaseClient.from('leaderboard').update({
+                    name: name, score: score, avatar: avatar
+                }).eq('player_id', playerId);
+            }
+            
+            // 如果在排行榜界面，静默刷新一下
+            if (layer.style.display === 'flex') {
+                fetchLeaderboard();
+            }
+        } catch (err) {
+            console.error("自动保存分数失败", err);
+        }
+    }
+
+    return {
+        open: function() {
+            loadUserInfo();
+            fetchLeaderboard();
+            layer.style.display = 'flex';
+        },
+        close: function() {
+            layer.style.display = 'none';
+        },
+        // 暴露自动保存接口给游戏调用
+        autoSubmit: function(score) {
+            autoSubmitScore(score);
+        }
+    };
+})();
+
+document.getElementById('leaderboard-close-btn').onclick = () => window.LeaderboardSystem.close();
+document.getElementById('btn-leaderboard').onclick = function(e) {
+    e.stopPropagation();
+    document.getElementById('pet-menu').classList.remove('show');
+    window.LeaderboardSystem.open();
+};
+
+        // ================= 成就系统模块 =================
+        window.AchieveSystem = (function() {
+                       const CONFIG = [
+                { id: 'hug_no', name: '冷酷无情', desc: '拒绝小爷抱抱10次', icon: '🧊', max: 10 },
+                { id: 'feed_5', name: '金牌饲养员', desc: '投喂小爷5次', icon: '🍖', max: 5 },
+                { id: 'jump_50', name: '眼疾手快', desc: '跳一跳得分达到50分', icon: '🎯', max: 1 },
+                { id: 'story_all', name: '全知全能', desc: '解锁所有约会与隐藏剧情', icon: '📚', max: 10 },
+                { id: 'gacha_10', name: '命运赌徒', desc: '累计抽卡10次', icon: '🎲', max: 10 },
+                { id: 'dark_end', name: '相爱相杀', desc: '体验一次黑化结局', icon: '🩸', max: 1 },
+                { id: '2048_win', name: '数字大师', desc: '在2048中合成数字2048', icon: '🧩', max: 1 }
+            ];
+
+            // 读取存档数据
+            let data = JSON.parse(localStorage.getItem('jh_achievements')) || {};
+            
+            function saveData() {
+                localStorage.setItem('jh_achievements', JSON.stringify(data));
+            }
+
+            // 渲染 UI
+            function render() {
+                const grid = document.getElementById('achieve-grid');
+                grid.innerHTML = '';
+                CONFIG.forEach(item => {
+                    const prog = data[item.id] || 0;
+                    const isUnlocked = prog >= item.max;
+                    const percent = Math.min((prog / item.max) * 100, 100);
+
+                    const el = document.createElement('div');
+                    el.className = 'achieve-item' + (isUnlocked ? ' unlocked' : '');
+                    el.innerHTML = `
+                        <div class="achieve-icon">${item.icon}</div>
+                        <div class="achieve-info">
+                            <div class="achieve-name">${item.name}</div>
+                            <div class="achieve-desc">${item.desc}</div>
+                            <div class="achieve-progress-bar">
+                                <div class="achieve-progress-fill" style="width: ${percent}%"></div>
+                            </div>
+                        </div>
+                    `;
+                    grid.appendChild(el);
+                });
+            }
+
+            // 弹出 Toast 提示
+                        function showToast(name, icon) {
+                // 震动 200ms
+                vibrateDevice(200);
+                // 播放音效
+                window.SoundSystem.playAch();
+                // 显示红点
+                const dot = document.getElementById('achieve-red-dot');
+                if (dot) dot.style.display = 'block';
+
+                const toast = document.createElement('div');
+                toast.className = 'achieve-toast';
+                toast.innerHTML = `
+                    <div class="achieve-toast-icon">${icon}</div>
+                    <div class="achieve-toast-text">解锁成就：${name}</div>
+                `;
+                document.body.appendChild(toast);
+                setTimeout(() => toast.classList.add('show'), 10);
+                setTimeout(() => {
+                    toast.classList.remove('show');
+                    setTimeout(() => toast.remove(), 500);
+                }, 3000);
+            }
+
+            // 核心：增加进度
+            function addProgress(id, amount) {
+                const conf = CONFIG.find(c => c.id === id);
+                if (!conf) return;
+                
+                let current = data[id] || 0;
+                if (current >= conf.max) return; // 已满级
+
+                data[id] = current + amount;
+                if (data[id] > conf.max) data[id] = conf.max;
+                saveData();
+
+                // 刚解锁
+                if (data[id] >= conf.max && current < conf.max) {
+                    showToast(conf.name, conf.icon);
+                }
+            }
+
+            return {
+                init: function() {
+                    document.getElementById('achieve-menu-btn').onclick = (e) => {
+                        e.stopPropagation();
+                        document.getElementById('pet-menu').classList.remove('show');
+                        // 消除红点
+                        const dot = document.getElementById('achieve-red-dot');
+                        if (dot) dot.style.display = 'none';
+                        render();
+                        document.getElementById('achieve-layer').style.display = 'flex';
+                    };
+                    document.getElementById('achieve-close-btn').onclick = () => {
+                        document.getElementById('achieve-layer').style.display = 'none';
+                    };
+                },
+                addProgress: addProgress,
+                testUnlockAll: function() {
+                    CONFIG.forEach(c => { data[c.id] = c.max; });
+                    saveData();
+                    render();
+                    alert("已解锁全部成就（测试用）！");
+                }
+            };
+        })();
+
+        // 启动成就系统
+        window.AchieveSystem.init();
+                // ================= 2048 独立游戏模块 =================
+                // ================= 2048 独立游戏模块 (丝滑动画版) =================
+        window.Game2048 = (function() {
+            const layer = document.getElementById('game-2048-layer');
+            const gridEl = document.getElementById('g2048-grid');
+            const scoreEl = document.getElementById('g2048-score');
+            const exitBtn = document.getElementById('exit-2048-btn');
+
+            let board = [];
+            let score = 0;
+            let isPlaying = false;
+            let tileIdCounter = 0;
+
+            // 初始化棋盘数据
+            function initBoard() {
+                board = [
+                    [null, null, null, null],
+                    [null, null, null, null],
+                    [null, null, null, null],
+                    [null, null, null, null]
+                ];
+                score = 0;
+                scoreEl.innerText = score;
+                gridEl.querySelectorAll('.g2048-tile').forEach(el => el.remove());
+                addRandomTile();
+                addRandomTile();
+                render(true); // 初始全量渲染
+            }
+
+            function addRandomTile() {
+                let emptyCells = [];
+                for (let r = 0; r < 4; r++) {
+                    for (let c = 0; c < 4; c++) {
+                        if (!board[r][c]) emptyCells.push({ r, c });
+                    }
+                }
+                if (emptyCells.length > 0) {
+                    let randomCell = emptyCells[Math.floor(Math.random() * emptyCells.length)];
+                    let val = Math.random() < 0.9 ? 2 : 4;
+                    board[randomCell.r][randomCell.c] = { 
+                        val: val, 
+                        id: tileIdCounter++, 
+                        isNew: true 
+                    };
+                }
+            }
+
+            // 核心动画渲染
+            function render(isInit = false) {
+                const cellSize = gridEl.offsetWidth / 4;
+                const gap = 10; // 假设 CSS 中 gap 是 10px
+                const padding = 10;
+                const tileSize = cellSize - gap;
+                
+                // 收集当前棋盘上所有的数字，用于对比
+                let currentDomTiles = {};
+                if (!isInit) {
+                    gridEl.querySelectorAll('.g2048-tile').forEach(el => {
+                        let id = el.getAttribute('data-id');
+                        if (id) currentDomTiles[id] = el;
+                    });
+                }
+
+                // 遍历新棋盘，更新位置
+                for (let r = 0; r < 4; r++) {
+                    for (let c = 0; c < 4; c++) {
+                        let cell = board[r][c];
+                        if (cell) {
+                            let tile = currentDomTiles[cell.id];
+                            
+                            // 计算新坐标
+                            let top = r * cellSize + padding;
+                            let left = c * cellSize + padding;
+
+                            if (!tile) {
+                                // 如果 DOM 里没有，说明是新生成的
+                                tile = document.createElement('div');
+                                tile.className = `g2048-tile tile-${cell.val}`;
+                                tile.setAttribute('data-id', cell.id);
+                                tile.style.width = tileSize + 'px';
+                                tile.style.height = tileSize + 'px';
+                                tile.style.top = top + 'px';
+                                tile.style.left = left + 'px';
+                                tile.innerText = cell.val;
+                                
+                                // 如果是最新生成的，加个弹出动画
+                                if (cell.isNew) {
+                                    tile.style.animation = 'tilePop 0.2s ease';
+                                    cell.isNew = false; // 动画只播放一次
+                                } else {
+                                    tile.style.animation = 'none';
+                                }
+                                gridEl.appendChild(tile);
+                                currentDomTiles[cell.id] = tile;
+                            } else {
+                                // 如果 DOM 里已经有了，通过 transition 平滑移动过去
+                                tile.style.top = top + 'px';
+                                tile.style.left = left + 'px';
+                                tile.innerText = cell.val;
+                            }
+                            
+                            // 清除已经用过的记录
+                            delete currentDomTiles[cell.id];
+                        }
+                    }
+                }
+
+                // 清理被合并掉的废弃 DOM（让它们先飞过去再消失）
+                setTimeout(() => {
+                    for (let id in currentDomTiles) {
+                        currentDomTiles[id].remove();
+                    }
+                }, 120); // 等滑动动画(100ms)基本结束再删
+            }
+
+            // 逻辑处理：移动和合并
+            function move(dir) {
+                if (!isPlaying) return;
+                let moved = false;
+                let is2048 = false;
+                let lines = [];
+
+                // 提取行列
+                if (dir === 'left' || dir === 'right') {
+                    for (let r = 0; r < 4; r++) {
+                        let row = [];
+                        for (let c = 0; c < 4; c++) row.push(board[r][c]);
+                        lines.push(row);
+                    }
+                } else {
+                    for (let c = 0; c < 4; c++) {
+                        let col = [];
+                        for (let r = 0; r < 4; r++) col.push(board[r][c]);
+                        lines.push(col);
+                    }
+                }
+
+                let newLines = [];
+                for (let i = 0; i < 4; i++) {
+                    let line = lines[i].filter(cell => cell !== null);
+                    if (dir === 'right' || dir === 'down') line.reverse();
+
+                    let newLine = [];
+                    for (let j = 0; j < line.length; j++) {
+                        if (j < line.length - 1 && line[j].val === line[j + 1].val) {
+                            // 合并
+                            let mergedVal = line[j].val * 2;
+                            newLine.push({ val: mergedVal, id: tileIdCounter++ });
+                            score += mergedVal;
+                            if (mergedVal === 2048) is2048 = true;
+                            j++; // 跳过下一个
+                        } else {
+                            newLine.push(line[j]);
+                        }
+                    }
+                    
+                    while (newLine.length < 4) newLine.push(null);
+                    if (dir === 'right' || dir === 'down') newLine.reverse();
+                    newLines.push(newLine);
+                }
+
+                // 转回 board 并检测是否发生了移动
+                for (let i = 0; i < 4; i++) {
+                    for (let j = 0; j < 4; j++) {
+                        let oldCell = (dir === 'left' || dir === 'right') ? board[i][j] : board[j][i];
+                        let newCell = (dir === 'left' || dir === 'right') ? newLines[i][j] : newLines[j][i];
+                        
+                        if (oldCell?.val !== newCell?.val) moved = true;
+                        
+                        if (dir === 'left' || dir === 'right') board[i][j] = newCell;
+                        else board[j][i] = newCell;
+                    }
+                }
+
+                if (moved) {
+                    vibrateDevice(30); // 滑动时轻微震动反馈
+                    addRandomTile();
+                    scoreEl.innerText = score;
+                    render(); // 触发滑动和合并
+                    
+                    // 成就
+                    if (is2048 && window.AchieveSystem) {
+                        window.AchieveSystem.addProgress('2048_win', 1);
+                    }
+
+                    if (checkGameOver()) {
+                        setTimeout(() => endGame(), 400);
+                    }
+                }
+            }
+
+            function checkGameOver() {
+                for (let r = 0; r < 4; r++) {
+                    for (let c = 0; c < 4; c++) {
+                        if (board[r][c] === null) return false;
+                    }
+                }
+                for (let r = 0; r < 4; r++) {
+                    for (let c = 0; c < 4; c++) {
+                        let v = board[r][c].val;
+                        if (r < 3 && v === board[r + 1][c].val) return false;
+                        if (c < 3 && v === board[r][c + 1].val) return false;
+                    }
+                }
+                return true;
+            }
+
+            function endGame() {
+                isPlaying = false;
+                let earnedCoins = Math.floor(score / 10);
+                let currentCoins = parseInt(localStorage.getItem('jh_coins')) || 0;
+                localStorage.setItem('jh_coins', currentCoins + earnedCoins);
+
+                if (window.LeaderboardSystem && window.LeaderboardSystem.autoSubmit) {
+                    window.LeaderboardSystem.autoSubmit(score);
+                }
+                alert(`游戏结束！得分：${score}\n获得金币：${earnedCoins}`);
+                close();
+            }
+
+            let keydownHandler = null;
+            let pointerDownHandler = null;
+            let pointerUpHandler = null;
+            let startX = 0, startY = 0;
+
+            function bindEvents() {
+                keydownHandler = (e) => {
+                    if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
+                        e.preventDefault();
+                        if (e.key === 'ArrowUp') move('up');
+                        if (e.key === 'ArrowDown') move('down');
+                        if (e.key === 'ArrowLeft') move('left');
+                        if (e.key === 'ArrowRight') move('right');
+                    }
+                };
+                document.addEventListener('keydown', keydownHandler);
+
+                pointerDownHandler = (e) => {
+                    startX = e.clientX; startY = e.clientY;
+                };
+                pointerUpHandler = (e) => {
+                    let dx = e.clientX - startX;
+                    let dy = e.clientY - startY;
+                    if (Math.abs(dx) > Math.abs(dy)) {
+                        if (Math.abs(dx) > 30) move(dx > 0 ? 'right' : 'left');
+                    } else {
+                        if (Math.abs(dy) > 30) move(dy > 0 ? 'down' : 'up');
+                    }
+                };
+                layer.addEventListener('pointerdown', pointerDownHandler);
+                window.addEventListener('pointerup', pointerUpHandler);
+            }
+
+            function unbindEvents() {
+                if (keydownHandler) document.removeEventListener('keydown', keydownHandler);
+                if (pointerDownHandler) layer.removeEventListener('pointerdown', pointerDownHandler);
+                if (pointerUpHandler) window.removeEventListener('pointerup', pointerUpHandler);
+                keydownHandler = pointerDownHandler = pointerUpHandler = null;
+            }
+
+            function close() {
+                isPlaying = false;
+                unbindEvents();
+                layer.style.display = 'none';
+                document.getElementById('game-hall-layer').style.display = 'flex';
+            }
+
+            exitBtn.onclick = close;
+
+            return {
+                start: function() {
+                    layer.style.display = 'flex';
+                    isPlaying = true;
+                    setTimeout(() => {
+                        initBoard();
+                        bindEvents();
+                    }, 50);
+                }
+            };
+        })();
+        // ================= 抓娃娃机独立模块 =================
+              // ================= 抓娃娃机独立模块 (真实物理版) =================
+               // ================= 抓娃娃机独立模块 (真实2.5D判定版) =================
+       // ================= 抓娃娃机独立模块 (完美手感+提示版) =================
+        // ================= 抓娃娃机独立模块 (完美手感+提示版) =================
+        window.ClawMachine = (function() {
+            const layer = document.getElementById('game-claw-layer');
+            const clawEl = document.getElementById('claw-entity');
+            const ropeEl = document.getElementById('claw-rope');
+            const poolEl = document.getElementById('dolls-pool');
+            const leftBtn = document.getElementById('btn-claw-left');
+            const rightBtn = document.getElementById('btn-claw-right');
+            const dropBtn = document.getElementById('btn-claw-drop');
+            const exitBtn = document.getElementById('exit-claw-btn');
+
+            let currentX = 50; 
+            let isPlaying = false;
+            let isAnimating = false;
+            let currentDolls = []; 
+            const EMOJIS = ['🧸', '🐰', '🐼', '🦊', '🐱', '🐶'];
+            const COST = 20;
+            const REWARD = 100;
+            let tiltTimer = null;
+
+            // 提示浮窗
+            function showCoinToast(text, isErr = false) {
+                const t = document.createElement('div');
+                t.className = 'coin-toast' + (isErr ? ' err' : '');
+                t.textContent = text;
+                document.body.appendChild(t);
+                requestAnimationFrame(() => t.classList.add('up'));
+                setTimeout(() => t.remove(), 500);
+            }
+
+            function initDolls() {
+                poolEl.innerHTML = '';
+                currentDolls = [];
+                
+                for (let i = 0; i < 6; i++) {
+                    let x = 15 + Math.random() * 60; 
+                    let y = Math.random() * 30; 
+                    let emoji = EMOJIS[Math.floor(Math.random() * EMOJIS.length)];
+                    
+                    let doll = document.createElement('div');
+                    doll.className = 'doll';
+                    doll.innerText = emoji;
+                    doll.style.left = x + '%';
+                    doll.style.bottom = y + '%';
+                    let scale = 1 - (y / 55); 
+                    doll.style.transform = `scale(${scale})`;
+                    
+                    poolEl.appendChild(doll);
+
+                    currentDolls.push({
+                        el: doll,
+                        x: x,
+                        y: y,
+                        active: true
+                    });
+                }
+            }
+
+            function moveClaw(dir) {
+                if (!isPlaying || isAnimating) return;
+                const step = dir === 'left' ? -5 : 5;
+                const next = currentX + step;
+                if (next < 10 || next > 90) return; 
+                
+                currentX = next;
+                clawEl.style.transform = `translateX(-50%) rotate(${dir === 'left' ? -8 : 8}deg)`;
+                clawEl.style.left = currentX + '%';
+                
+                if (window.SoundSystem) window.SoundSystem.playClick();
+                if (window.vibrateDevice) window.vibrateDevice(15);
+                
+                clearTimeout(tiltTimer);
+                tiltTimer = setTimeout(() => {
+                    clawEl.style.transform = 'translateX(-50%) rotate(0deg)';
+                }, 150);
+            }
+
+            function dropClaw() {
+                if (!isPlaying || isAnimating) return;
+                
+                let currentCoins = parseInt(localStorage.getItem('jh_coins')) || 0;
+                if (currentCoins < COST) {
+                    showCoinToast('金币不足，去玩几局游戏吧～', true);
+                    return;
+                }
+                
+                localStorage.setItem('jh_coins', currentCoins - COST);
+                showCoinToast(`-${COST} 金币`);
+                if (window.vibrateDevice) window.vibrateDevice(30);
+
+                isAnimating = true;
+                dropBtn.disabled = leftBtn.disabled = rightBtn.disabled = true;
+
+                ropeEl.classList.remove('up');
+                ropeEl.style.height = '38vh';
+
+                setTimeout(() => {
+                    clawEl.classList.add('grabbing');
+                    if (window.SoundSystem) window.SoundSystem.playClick();
+                    if (window.vibrateDevice) window.vibrateDevice([30, 50, 30]);
+
+                    let bestDoll = null, bestDist = 999;
+                    currentDolls.forEach(d => {
+                        if (!d.active) return;
+                        const distX = Math.abs(d.x - currentX);
+                        if (distX < 8 && distX < bestDist) {
+                            bestDist = distX;
+                            bestDoll = d;
+                        }
+                    });
+
+                    const caughtDoll = (bestDoll && Math.random() < 0.6) ? bestDoll : null;
+
+                    if (caughtDoll) {
+                        caughtDoll.el.style.transform = `scale(0.8) translateY(-20px)`;
+                        if (window.SoundSystem) window.SoundSystem.playWin();
+                    }
+
+                    setTimeout(() => {
+                        ropeEl.classList.add('up');
+                        ropeEl.style.height = '0px';
+                        if (caughtDoll) caughtDoll.el.style.bottom = '35%';
+
+                        setTimeout(() => {
+                            if (caughtDoll) {
+                                clawEl.style.left = '85%';
+                                setTimeout(() => {
+                                    clawEl.classList.remove('grabbing');
+                                    caughtDoll.el.style.bottom = '-20px';
+                                    caughtDoll.el.style.opacity = '0';
+                                    caughtDoll.active = false;
+                                    setTimeout(() => caughtDoll.el.remove(), 500);
+
+                                    const c = parseInt(localStorage.getItem('jh_coins')) || 0;
+                                    localStorage.setItem('jh_coins', c + REWARD);
+                                    showCoinToast(`🎉 抓到了 ${caughtDoll.el.innerText}！+${REWARD} 金币`);
+                                    endGame();
+                                }, 600);
+                            } else {
+                                clawEl.classList.remove('grabbing');
+                                showCoinToast('差一点！下次一定～', true);
+                                endGame();
+                            }
+                        }, 500);
+                    }, 200);
+                }, 550);
+            }
+
+            function endGame() {
+                setTimeout(() => {
+                    isAnimating = false;
+                    
+                    if (currentDolls.filter(d => d.active).length === 0) {
+                        initDolls();
+                    } else {
+                        currentDolls.forEach(d => {
+                            if (d.active) {
+                                d.el.style.transition = 'bottom 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), transform 0.4s';
+                                let newY = Math.random() * 30;
+                                d.y = newY;
+                                d.el.style.bottom = newY + '%';
+                                d.el.style.transform = `scale(${1 - (newY / 55)})`;
+                            }
+                        });
+                    }
+                    
+                    clawEl.style.left = '50%';
+                    currentX = 50;
+                    clawEl.classList.remove('grabbing');
+                    ropeEl.classList.remove('up');
+                    ropeEl.style.height = '0px';
+                    
+                    leftBtn.disabled = false;
+                    rightBtn.disabled = false;
+                    dropBtn.disabled = false;
+                }, 300);
+            }
+
+            function close() {
+                isPlaying = false;
+                layer.style.display = 'none';
+                document.getElementById('game-hall-layer').style.display = 'flex';
+            }
+
+            leftBtn.onclick = (e) => { e.preventDefault(); moveClaw('left'); };
+            rightBtn.onclick = (e) => { e.preventDefault(); moveClaw('right'); };
+            dropBtn.onclick = (e) => { e.preventDefault(); dropClaw(); };
+            exitBtn.onclick = (e) => { e.preventDefault(); close(); };
+
+            return {
+                start: function() {
+                    layer.style.display = 'flex';
+                    isPlaying = true;
+                    isAnimating = false;
+                    currentX = 50;
+                    clawEl.style.left = '50%';
+                    clawEl.style.transform = 'translateX(-50%)';
+                    clawEl.classList.remove('grabbing');
+                    ropeEl.classList.remove('up');
+                    ropeEl.style.height = '0px';
+                    
+                    leftBtn.disabled = false;
+                    rightBtn.disabled = false;
+                    dropBtn.disabled = false;
+                    initDolls();
+                }
+            };
+        })();
+</script>
 </body>
 </html>
