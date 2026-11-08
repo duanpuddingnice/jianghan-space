@@ -31,20 +31,20 @@
             pointer-events: none !important;
         }
         /* ================== 原流程弹窗 ================== */
-        .popup-window {
-            position: absolute; background-color: #FFB7C5; border: 1px solid rgba(255,255,255,0.6); border-radius: 6px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.15); display: flex; flex-direction: column; z-index: 10;
+                .popup-window {
+            position: absolute; background-color: #FFB7C5; border: 1px solid rgba(255,255,255,0.8); border-radius: 8px;
+            box-shadow: 0 6px 20px rgba(0,0,0,0.25); display: flex; flex-direction: column; z-index: 10;
             opacity: 0; height: auto; min-height: 50px; transform: scale(0.6) translateY(20px);
             transition: opacity 0.6s, transform 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275), background-color 1s, left 1.8s ease-in-out, top 1.8s ease-in-out;
-            pointer-events: none; max-width: 90vw;
+            pointer-events: auto; max-width: 85vw;
         }
         .popup-window.show { opacity: 1; transform: scale(1) translateY(0); }
         .popup-window.hide { opacity: 0; transform: scale(0.8); }
         .popup-title-bar { height: 20px; background: rgba(255,255,255,0.25); display: flex; align-items: center; justify-content: space-between; padding: 0 6px; font-size: 11px; color: rgba(255,255,255,0.9); flex-shrink: 0; }
-        .popup-content {
-            flex: 1; display: flex; align-items: center; justify-content: center; padding: 6px; color: white; font-weight: bold; text-align: center;
-            font-size: clamp(11px, 3.2vw, 14px); line-height: 1.4; text-shadow: 0 1px 2px rgba(0,0,0,0.1);
-            word-break: break-all; display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden;
+                .popup-content {
+            flex: 1; display: flex; align-items: center; justify-content: center; padding: 10px 6px; color: white; font-weight: bold; text-align: center;
+            font-size: clamp(11px, 3.2vw, 13px); line-height: 1.5; text-shadow: 0 1px 2px rgba(0,0,0,0.1);
+            word-break: break-all;
         }
         .popup-window.dark { background-color: #2a2a2a; border-color: rgba(200, 0, 0, 0.4); box-shadow: 0 0 20px rgba(139, 0, 0, 0.6); transition: opacity 0.3s, transform 0.3s, background-color 0.3s;}
         .popup-window.dark .popup-title-bar { background: rgba(139, 0, 0, 0.4); color: #ff9999; }
@@ -211,6 +211,9 @@
         
         #story-exit-btn { position: absolute; top: 20px; right: 20px; background: transparent; border: 1px solid #888; color: #ccc; padding: 6px 12px; border-radius: 15px; font-size: 14px; cursor: pointer; font-family: 'Microsoft YaHei', sans-serif; z-index: 10000;}
         #story-exit-btn:active { color: #fff; border-color: #fff; }
+                .popup-close {
+            cursor: pointer;
+        }
         /* ================== 存档菜单按钮（右上角固定） ================== */
 #save-menu-btn {
     position: absolute;
@@ -556,9 +559,17 @@
 
         function createPopup(message, isDark = false, x = null, y = null, w = null, h = null) {
             const win = document.createElement('div'); win.className = 'popup-window' + (isDark ? ' dark' : '');
-            let ww = w || (isMobile ? 100 : 130); if (ww > window.innerWidth * 0.9) ww = window.innerWidth * 0.9;
-            win.style.left = (x !== null ? x : Math.random() * (window.innerWidth - ww)) + 'px'; 
-            win.style.top = (y !== null ? y : Math.random() * (window.innerHeight - 80)) + 'px';
+                       // 根据字数动态分配宽度
+            let baseWidth = message.length > 18 ? (isMobile ? 140 : 170) : (isMobile ? 105 : 130);
+            let ww = w || baseWidth; 
+            if (ww > window.innerWidth * 0.85) ww = window.innerWidth * 0.85;
+
+            // 随机位置但保留安全边距
+            let safeX = x !== null ? x : Math.random() * (window.innerWidth - ww - 40) + 20; 
+            let safeY = y !== null ? y : Math.random() * (window.innerHeight - 120) + 60; 
+
+            win.style.left = safeX + 'px'; 
+            win.style.top = safeY + 'px';
             win.style.width = ww + 'px';
             if (!isDark) win.style.backgroundColor = ['#FFB7C5', '#FFC0CB', '#FFB6C1', '#FFD1DC'][Math.floor(Math.random() * 4)];
             if (message === "我爱你" || message === "我恨你") {
@@ -566,7 +577,18 @@
             } else {
                 win.innerHTML = `<div class="popup-title-bar"><span>${isDark ? '警告' : '江寒'}</span><span class="popup-close">✖</span></div><div class="popup-content">${message.replace(/\\n/g, '<br>')}</div>`;
             }
-            document.body.appendChild(win); allPopups.push(win); safeSetTimeout(() => win.classList.add('show'), 10); return win;
+            document.body.appendChild(win);
+                        // 👇 新增：点击叉号关闭弹窗
+            const closeBtn = win.querySelector('.popup-close');
+            if (closeBtn) {
+                closeBtn.onclick = function(e) {
+                    e.stopPropagation();
+                    win.remove();
+                    allPopups = allPopups.filter(p => p !== win); 
+                };
+            }
+            // 👆 粘贴到这里结束
+            allPopups.push(win); safeSetTimeout(() => win.classList.add('show'), 10); return win;
         }
 
         function clearPopups() { allPopups.forEach(win => { win.classList.remove('show'); safeSetTimeout(() => win.remove(), 300); }); allPopups = []; }
@@ -619,10 +641,19 @@
             document.getElementById('typewriter').style.opacity = '0'; 
             document.getElementById('bgm1').play().catch(e => console.log(e));
             const totalPopups = 60; const heartCount = 30; let count = 0; let allCreatedWins = []; 
-            const interval = safeSetInterval(() => {
+                        const interval = safeSetInterval(() => {
                 if (count >= totalPopups) { clearInterval(interval); safeSetTimeout(beginConverge, 3000); return; }
-                let win = createPopup(loveMessages[count % loveMessages.length], false); allCreatedWins.push(win); count++;
-            }, 150); 
+                
+                let safeX = Math.random() * (window.innerWidth - 160) + 20;
+                let safeY = Math.random() * (window.innerHeight - 160) + 80;
+                let win = createPopup(loveMessages[count % loveMessages.length], false, safeX, safeY); 
+                
+                // 👇 把这两句补回去 👇
+                allCreatedWins.push(win); 
+                count++;
+                // 👆 ================ 👆
+                
+            }, 150);  
 
             function beginConverge() {
                 const cx = window.innerWidth / 2; const cy = window.innerHeight / 2 - 30; const scale = Math.min(window.innerWidth, window.innerHeight) / 35; 
