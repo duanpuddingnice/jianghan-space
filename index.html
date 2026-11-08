@@ -518,15 +518,27 @@
                 }
             }
         });
-        prel        // 【新增】全面封杀右键、选中、长按
+      // 【新增】全面封杀右键、选中、长按
         document.onselectstart = function() { return false; }; // 禁止选中
         document.oncontextmenu = function() { return false; }; // 禁止右键菜单
         
+        // ================= 终极防复制 / 防识屏 =================
+        document.onselectstart = function() { return false; };
+        document.oncontextmenu = function() { return false; };
+
         document.addEventListener('contextmenu', function(e) {
             e.preventDefault();
         });
         document.addEventListener('selectstart', function(e) {
             e.preventDefault();
+        });
+
+        // 监听选区变化，只要发现有选区瞬间清空
+        document.addEventListener('selectionchange', function() {
+            const selection = window.getSelection();
+            if (selection && selection.toString().length > 0) {
+                selection.removeAllRanges(); 
+            }
         });
         // 针对部分顽固的安卓浏览器，直接拦截长按事件
         document.addEventListener('touchstart', function(e) {
